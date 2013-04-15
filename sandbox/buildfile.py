@@ -157,12 +157,13 @@ _schema = _require(
                 'type': _require(str),
                 'approot': _optional(str, default='.'),
                 'requirements': _optional(list, default=[]),
+                'systempackages': _optional(list, default=[]),
                 'environment': _optional(dict, default={}),
                 'postinstall': _optional(str, default=''),
                 'config': _optional(dict, default={}),
                 'instances': _optional(int, default=1),
-                'process': _optional(str),
-                'processes': _optional(dict),
+                'process': _optional(str, default=''),
+                'processes': _optional(dict, default={}),
                 'ports': _optional(dict, {
                     '*': _optional(str, allowed=('port', set(('http', 'tcp', 'udp'))))
                 }),
@@ -188,7 +189,7 @@ def validate_ast_schema(ast, valid_services):
     schema.validate(ast, 'service(s) dict')
 
 
-def load_build_file(build_file_content, valid_services=["python", "custom"]):
+def load_build_file(build_file_content, valid_services=["python", "python-worker", "custom"]):
     """ Load and parse the build description contained in the build file """
     stream = StringIO(build_file_content)
     stream.name = 'dotcloud.yml'  # yaml load will use this property
@@ -214,9 +215,11 @@ def load_build_file(build_file_content, valid_services=["python", "custom"]):
     # for each services description
     for service_name, service_desc in desc.iteritems():
         # Check for conflicting options
-        if 'process' in service_desc and 'processes' in service_desc:
-            msg = 'You can\'t have both "process" and "processes" at the same time in service "{0}"'.format(service_name)
-            raise ValueError(msg)
+        if service_desc.get('process') and service_desc.get('processes'):
+            raise ValueError(
+                'You can\'t have both "process" and "processes" at '
+                'the same time in service "{0}"'.format(service_name)
+            )
 
         # Inject defaults values if necessary
         for def_name, def_node in _schema.subnode['*'].subnode.items():

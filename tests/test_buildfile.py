@@ -20,7 +20,10 @@ www:
             'environment': {},
             'instances': 1,
             'postinstall': '',
+            'process': '',
+            'processes': {},
             'requirements': [],
+            'systempackages': [],
             'type': 'python'}})
 
 
@@ -96,7 +99,10 @@ www:
             'environment': {'caca': 'lol'},
             'instances': 1,
             'postinstall': '',
+            'process': '',
+            'processes': {},
             'requirements': [],
+            'systempackages': [],
             'type': 'python'}})
 
 
@@ -107,6 +113,8 @@ www:
     approot: 42
     environment:
         caca: lol
+    systempackages:
+        - vim
     customshit:
 db:
     type: python
@@ -114,21 +122,36 @@ db:
        MYVAR: "my lovely var"
 '''
         desc = load_build_file(build_file)
-        self.assertDictEqual(desc, {'db': {'approot': '.',
-            'config': {},
-            'environment': {'MYVAR': 'my lovely var'},
-            'instances': 1,
-            'postinstall': '',
-            'requirements': [],
-            'type': 'python'},
-            'www': {'approot': '42',
-                'config': {},
-                'customshit': None,
-                'environment': {'caca': 'lol'},
-                'instances': 1,
-                'postinstall': '',
-                'requirements': [],
-                'type': 'python'}})
+        self.assertDictEqual(
+            desc,
+            {
+                'db': {
+                    'approot': '.',
+                    'config': {},
+                    'environment': {'MYVAR': 'my lovely var'},
+                    'instances': 1,
+                    'postinstall': '',
+                    'process': '',
+                    'processes': {},
+                    'requirements': [],
+                    'systempackages': [],
+                    'type': 'python'
+                },
+                'www': {
+                    'approot': '42',
+                    'config': {},
+                    'customshit': None,
+                    'environment': {'caca': 'lol'},
+                    'instances': 1,
+                    'process': '',
+                    'processes': {},
+                    'postinstall': '',
+                    'requirements': [],
+                    'systempackages': ['vim'],
+                    'type': 'python'
+                }
+            }
+        )
 
 
     def test_type_error(self):
@@ -176,8 +199,10 @@ www:
             'environment': {},
             'instances': 1,
             'postinstall': '',
+            'processes': {},
             'process': '~/myapp.py',
             'requirements': [],
+            'systempackages': [],
             'type': 'custom'}})
 
 
@@ -199,7 +224,9 @@ worker:
                 'ports': {'www': 'http'},
                 'postinstall': '',
                 'process': '~/myapp.py',
+                'processes': {},
                 'requirements': [],
+                'systempackages': [],
                 'type': 'custom'}})
 
 
@@ -237,7 +264,9 @@ worker:
             'ports': {},
             'postinstall': '',
             'process': '~/myapp.py',
+            'processes': {},
             'requirements': [],
+            'systempackages': [],
             'type': 'custom'}})
 
 
@@ -265,6 +294,9 @@ www:
                 },
             'postinstall': '',
             'requirements': [],
+            'systempackages': [],
+            'process': '',
+            'processes': {},
             'ruby_version': '1.9',
             'type': 'custom'}})
 
@@ -280,7 +312,10 @@ www:
             'environment': {},
             'instances': 1,
             'postinstall': '',
+            'process': '',
+            'processes': {},
             'requirements': [],
+            'systempackages': [],
             'type': 'python'}})
 
         build_file = '''
