@@ -2,8 +2,8 @@ dotCloud Sandbox
 ================
 
 As `announced`__, dotCloud Sandbox is an open-source project that try to
-replicate the sandbox flavor of dotCloud: a free and easy way to build
-web applications.
+replicate the sandbox flavor of dotCloud: a free and easy way to build web
+applications.
 
 __ http://blog.dotcloud.com/new-sandbox
 
@@ -26,3 +26,12 @@ differences exist:
 .. _Docker: https://github.com/dotcloud/docker
 .. _environment.json: http://docs.dotcloud.com/guides/environment/
 .. _postinstall: http://docs.dotcloud.com/guides/hooks/#post-install
+
+Requirements
+------------
+
+- Python 2.7 (older versions *won't* work);
+- Docker (This is developed against master, but pretty much any recent release
+  should work).
+
+.. vim: set tw=80 spelllang=en_US spell:

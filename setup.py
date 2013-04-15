@@ -7,8 +7,6 @@ from setuptools import setup
 
 requirements = ["pyyaml"]
 test_requires = ["unittest2"]
-if sys.version_info < (2, 7):
-    requirements.append("argparse")
 
 setup(
     name="udotcloud.sandbox",
@@ -27,7 +25,7 @@ setup(
         "Intended Audience :: Developers",
         "Intended Audience :: System Administrators",
         "Operating System :: POSIX :: Linux",
-        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.7",
         "Topic :: Software Development :: Build Tools"
     ],
     zip_safe=False
