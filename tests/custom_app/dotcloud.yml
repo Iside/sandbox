@@ -1,0 +1,7 @@
+db:
+    type: custom
+    buildscript: ./buildscript
+    systempackages:
+        - postgresql
+    environment:
+        API_ENDPOINT: http://api.example.com/v1/
