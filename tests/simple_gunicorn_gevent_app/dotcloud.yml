@@ -1,0 +1,6 @@
+api:
+    type: python-worker
+    ports:
+        www: http
+    processes:
+        api: gunicorn -k gevent -b 0.0.0.0:$PORT_WWW -w 2 wsgi:application
