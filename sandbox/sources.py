@@ -48,7 +48,7 @@ class Application(object):
         yield build_dir
         shutil.rmtree(build_dir, ignore_errors=True)
 
-    def build(self):
+    def build(self, base_image=None):
         with self._build_dir() as build_dir:
             logging.debug("Starting parallel build for {0} in {1}".format(
                 self.name, build_dir
@@ -60,7 +60,9 @@ class Application(object):
             )
             app_tarball.wait()
             greenlets = [
-                gevent.spawn(service.build, build_dir, app_tarball.dest)
+                gevent.spawn(
+                    service.build, build_dir, app_tarball.dest, base_image
+                )
                 for service in self.services
             ]
             gevent.joinall(greenlets)
@@ -150,7 +152,7 @@ stderr_logfile=/var/log/supervisor/{name}_error.log
         svc_tarball.wait()
         return svc_tarball
 
-    def build(self, app_build_dir, app_tarball):
+    def build(self, app_build_dir, app_tarball, base_image):
         #image = Image("lopter/raring-base", "latest")
         #container = image.instantiate()
         #container.install_system_packages(self.systempackages)

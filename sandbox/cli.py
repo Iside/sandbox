@@ -6,6 +6,7 @@ import re
 import sys
 
 from .sources import Application
+from .containers import ImageRevSpec, Image
 
 logging.basicConfig(level="DEBUG")
 
@@ -36,6 +37,9 @@ def main():
     parser.add_argument("-e", "--env", action="append",
         help="Define an environment variable (in the form KEY=VALUE) during the build"
     )
+    parser.add_argument("-i", "--image",
+        help="Specify which Docker image to use as a starting point to build services"
+    )
     parser.add_argument("application",
         help="Path to your application source directory (where your dotcloud.yml is)"
     )
@@ -43,6 +47,11 @@ def main():
     args = parser.parse_args()
 
     env = parse_environment_variables(args.env) if args.env else {}
+    try:
+        base_image = Image(ImageRevSpec.parse(args.image)) if args.image else None
+    except ValueError as ex:
+        logging.error("Can't parse your image revision/name: {0}".format(ex))
+        sys.exit(1)
 
     logging.debug("Loading {0}".format(args.application))
     application = Application(args.application, env)
@@ -50,4 +59,7 @@ def main():
     logging.debug("Application's environment: {0}".format(
         application.environment
     ))
-    application.build()
+    logging.debug("Starting with base image: {0}".format(
+        base_image.revspec if base_image else "default"
+    ))
+    application.build(base_image)
