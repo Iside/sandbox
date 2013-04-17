@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import logging; logging.basicConfig(level="DEBUG")
 import unittest2
 
 from udotcloud.sandbox.containers import ImageRevSpec, _ImageRevSpec

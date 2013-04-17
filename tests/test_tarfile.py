@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import logging; logging.basicConfig(level="DEBUG")
 import gevent
 import gevent.subprocess
 import os

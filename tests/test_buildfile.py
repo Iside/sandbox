@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Started by François-Xavier Bourlet <fx@dotcloud.com>, Oct 2011.
 
+import logging; logging.basicConfig(level="DEBUG")
 import unittest2
 
 from udotcloud.sandbox.buildfile import load_build_file, SchemaError
