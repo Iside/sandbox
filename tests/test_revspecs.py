@@ -7,7 +7,7 @@ from udotcloud.sandbox.containers import ImageRevSpec, _ImageRevSpec
 
 class TestRevSpecs(unittest2.TestCase):
 
-    revspecs = {
+    human_revspecs = {
         "": None,
         ":": None,
         "/": None,
@@ -30,10 +30,35 @@ class TestRevSpecs(unittest2.TestCase):
         ":user/repo": None
     }
 
-    def test_revspecs(self):
-        for revspec, result in self.revspecs.iteritems():
+    # As in the output of docker images
+    docker_revspec = {
+        "": None,
+        "base" : None,
+        # The space in front denotes the fac that an username/repo is missing
+        # (the output of docker images is tabbed):
+        " 33b6d177c4bd": _ImageRevSpec(None, None, "33b6d177c4bd", None),
+        " 33b6d177c4bd just now": _ImageRevSpec(None, None, "33b6d177c4bd", None),
+        " latest 33b6d177c4bd just now": None,
+        "base latest 33b6d177c4bd 3 weeks ago": _ImageRevSpec(None, "base", "33b6d177c4bd", "latest"),
+        "base latest 33b6d177c4bd": _ImageRevSpec(None, "base", "33b6d177c4bd", "latest"),
+        "base 33b6d177c4bd": _ImageRevSpec(None, "base", "33b6d177c4bd", None),
+        "base 33b6d177c4bd 3 weeks ago": _ImageRevSpec(None, "base", "33b6d177c4bd", None),
+        "lopter/raring-base 33b6d177c4bd 3 weeks ago": _ImageRevSpec("lopter", "raring-base", "33b6d177c4bd", None),
+        "lopter/raring-base latest 33b6d177c4bd 3 weeks ago": _ImageRevSpec("lopter", "raring-base", "33b6d177c4bd", "latest"),
+    }
+
+    def test_human_revspecs(self):
+        for revspec, result in self.human_revspecs.iteritems():
             if result is None:
                 with self.assertRaises(ValueError):
                     ImageRevSpec.parse(revspec)
             else:
                 self.assertEqual(ImageRevSpec.parse(revspec), result)
+
+    def test_docker_revspecs(self):
+        for revspec, result in self.docker_revspec.iteritems():
+            if result is None:
+                with self.assertRaises(ValueError):
+                    ImageRevSpec.parse_from_docker(revspec)
+            else:
+                self.assertEqual(ImageRevSpec.parse_from_docker(revspec), result)

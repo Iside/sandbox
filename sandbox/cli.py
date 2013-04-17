@@ -5,8 +5,9 @@ import logging
 import re
 import sys
 
-from .sources import Application
 from .containers import ImageRevSpec, Image
+from .exceptions import UnkownImageError
+from .sources import Application
 
 logging.basicConfig(level="DEBUG")
 
@@ -51,6 +52,9 @@ def main():
         base_image = Image(ImageRevSpec.parse(args.image)) if args.image else None
     except ValueError as ex:
         logging.error("Can't parse your image revision/name: {0}".format(ex))
+        sys.exit(1)
+    except UnkownImageError:
+        logging.error("The image {0} doesn't exist".format(args.image))
         sys.exit(1)
 
     logging.debug("Loading {0}".format(args.application))
