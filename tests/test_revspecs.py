@@ -40,6 +40,8 @@ class TestRevSpecs(unittest2.TestCase):
         " 33b6d177c4bd just now": _ImageRevSpec(None, None, "33b6d177c4bd", None),
         " latest 33b6d177c4bd just now": None,
         "base latest 33b6d177c4bd 3 weeks ago": _ImageRevSpec(None, "base", "33b6d177c4bd", "latest"),
+        "<none> <none> 33b6d177c4bd 3 weeks ago": _ImageRevSpec(None, None, "33b6d177c4bd", None),
+        "<none> <none> 33b6d177c4bd": _ImageRevSpec(None, None, "33b6d177c4bd", None),
         "base latest 33b6d177c4bd": _ImageRevSpec(None, "base", "33b6d177c4bd", "latest"),
         "base 33b6d177c4bd": _ImageRevSpec(None, "base", "33b6d177c4bd", None),
         "base 33b6d177c4bd 3 weeks ago": _ImageRevSpec(None, "base", "33b6d177c4bd", None),
@@ -48,17 +50,26 @@ class TestRevSpecs(unittest2.TestCase):
     }
 
     def test_human_revspecs(self):
-        for revspec, result in self.human_revspecs.iteritems():
-            if result is None:
+        for revspec, expected in self.human_revspecs.iteritems():
+            if expected is None:
                 with self.assertRaises(ValueError):
                     ImageRevSpec.parse(revspec)
             else:
-                self.assertEqual(ImageRevSpec.parse(revspec), result)
+                result = ImageRevSpec.parse(revspec)
+                # We don't want to test ImageRevSpec.__eq__ here:
+                self.assertEqual(result.username, expected.username)
+                self.assertEqual(result.repository, expected.repository)
+                self.assertEqual(result.revision, expected.revision)
+                self.assertEqual(result.tag, expected.tag)
 
     def test_docker_revspecs(self):
-        for revspec, result in self.docker_revspec.iteritems():
-            if result is None:
+        for revspec, expected in self.docker_revspec.iteritems():
+            if expected is None:
                 with self.assertRaises(ValueError):
                     ImageRevSpec.parse_from_docker(revspec)
             else:
-                self.assertEqual(ImageRevSpec.parse_from_docker(revspec), result)
+                result = ImageRevSpec.parse_from_docker(revspec)
+                self.assertEqual(result.username, expected.username)
+                self.assertEqual(result.repository, expected.repository)
+                self.assertEqual(result.revision, expected.revision)
+                self.assertEqual(result.tag, expected.tag)
