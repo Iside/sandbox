@@ -3,13 +3,12 @@
 import argparse
 import logging
 import re
+import string
 import sys
 
 from .containers import ImageRevSpec, Image
 from .exceptions import UnkownImageError
 from .sources import Application
-
-logging.basicConfig(level="DEBUG")
 
 def parse_environment_variables(env_list):
     env_dict = {}
@@ -41,11 +40,18 @@ def main():
     parser.add_argument("-i", "--image",
         help="Specify which Docker image to use as a starting point to build services"
     )
+    parser.add_argument("-v", "--verbosity", dest="log_lvl", default="info",
+        type=string.upper,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Log level to use on stderr"
+    )
     parser.add_argument("application",
         help="Path to your application source directory (where your dotcloud.yml is)"
     )
 
     args = parser.parse_args()
+
+    logging.basicConfig(level=args.log_lvl)
 
     env = parse_environment_variables(args.env) if args.env else {}
     try:
