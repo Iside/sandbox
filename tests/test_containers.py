@@ -8,7 +8,7 @@ import unittest2
 from udotcloud.sandbox.containers import ImageRevSpec, Image
 from udotcloud.sandbox.exceptions import UnkownImageError
 
-class TestContainers(unittest2.TestCase):
+class ContainerTestCase(unittest2.TestCase):
 
     @staticmethod
     def _random_image_name():
@@ -18,14 +18,17 @@ class TestContainers(unittest2.TestCase):
 
     def setUp(self):
         try:
-            self.image = Image(ImageRevSpec.parse("lopter/raring-base:barebone"))
+            self.image = Image(ImageRevSpec.parse("lopter/raring-base:latest"))
             self.result_revspec = ImageRevSpec.parse(self._random_image_name())
             self.container = self.image.instantiate(commit_as=self.result_revspec)
         except UnkownImageError as ex:
             return self.skipTest(str(ex))
 
     def tearDown(self):
-        self.container.result.destroy()
+        if self.container.result:
+            self.container.result.destroy()
+
+class TestContainers(ContainerTestCase):
 
     def test_container_run_no_stdin(self):
         with self.container.run(["pwd"]):

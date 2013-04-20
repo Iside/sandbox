@@ -2,6 +2,7 @@
 
 import contextlib
 import gevent
+import gevent.subprocess
 import itertools
 import json
 import logging
@@ -10,9 +11,11 @@ import pprint
 import shutil
 import socket
 import tempfile
+import time
 import yaml
 
 from .buildfile import load_build_file
+from .containers import ImageRevSpec
 from .tarfile import Tarball
 
 class Application(object):
@@ -79,6 +82,11 @@ class Service(object):
         # TODO: actually build a list of services which are buildable or not:
         self.buildable = True
 
+    def _result_revspec(self):
+        return ImageRevSpec.parse("{0}-{1}:ts-{2}".format(
+            self._application.name, self.name, int(time.time())
+        ))
+
     def _generate_supervisor_include(self, svc_build_dir):
         PROGRAM_TEMPLATE = """[program:{name}]
 command=/bin/sh -lc "exec {command}"
@@ -128,11 +136,11 @@ stderr_logfile=/var/log/supervisor/{name}_error.log
             ])
         return env_json, env_yml, env_profile
 
-    def _generate_service_tarball(self, app_build_dir, app_tarball):
+    def _generate_service_tarball(self, app_build_dir, app_tarball_path):
         svc_build_dir = os.path.join(app_build_dir, self.name)
         os.mkdir(svc_build_dir)
         svc_tarball_name = "service.tar"
-        app_tarball_name = os.path.basename(app_tarball)
+        app_tarball_name = os.path.basename(app_tarball_path)
 
         self._generate_supervisor_include(svc_build_dir)
         self._generate_environment_files(svc_build_dir)
@@ -143,7 +151,7 @@ stderr_logfile=/var/log/supervisor/{name}_error.log
         )
         svc_tarball.wait()
 
-        os.link(app_tarball, os.path.join(svc_build_dir, app_tarball_name))
+        os.link(app_tarball_path, os.path.join(svc_build_dir, app_tarball_name))
         svc_tarball = Tarball.create_from_files(
             [svc_tarball_name, app_tarball_name],
             os.path.join(app_build_dir, "{0}.tar".format(self.name)),
@@ -152,15 +160,24 @@ stderr_logfile=/var/log/supervisor/{name}_error.log
         svc_tarball.wait()
         return svc_tarball
 
-    def build(self, app_build_dir, app_tarball, base_image):
-        #image = Image("lopter/raring-base", "latest")
-        #container = image.instantiate()
-        #container.install_system_packages(self.systempackages)
-        #image = container.commit("Installed system packages: {0}".format(
-        #    " ".join(self.systempackages)
-        #))
-        logging.info("Building service {0}".format(self.name))
-        svc_tarball = self._generate_service_tarball(app_build_dir, app_tarball)
+    def _unpack_service_tarball(self, svc_tarball_path, container):
+        with open(svc_tarball_path, "r") as source:
+            # XXX Extract in ~dotcloud?
+            tar_extract = ["tar", "-xf", "-", "-C", "/tmp"]
+            with container.run(tar_extract, stdin=container.PIPE) as dest:
+                buf = source.read(8192)
+                while buf:
+                    dest.stdin.write(buf)
+                    buf = source.read(8192)
+                dest.stdin.close()
+
+    def build(self, app_build_dir, app_tarball_path, base_image):
+        logging.info("Building service {0}…".format(self.name))
+        svc_tarball = self._generate_service_tarball(
+            app_build_dir, app_tarball_path
+        )
         logging.debug("Tarball for service {0} generated at {1}".format(
             self.name, svc_tarball.dest
         ))
+        container = base_image.instantiate(commit_as=self._result_revspec())
+        self._unpack_service_tarball(svc_tarball.dest, container)

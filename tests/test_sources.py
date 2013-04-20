@@ -10,6 +10,8 @@ import yaml
 
 from udotcloud.sandbox import Application
 
+from test_containers import ContainerTestCase
+
 class TestApplication(unittest2.TestCase):
 
     def setUp(self):
@@ -25,13 +27,15 @@ class TestApplication(unittest2.TestCase):
         application = Application(os.path.join(self.path, "custom_app"), {})
         self.assertListEqual(application.services[0].systempackages, ["postgresql"])
 
-class TestService(unittest2.TestCase):
+class TestService(ContainerTestCase):
 
     def setUp(self):
+        ContainerTestCase.setUp(self)
         self.path = os.path.dirname(__file__)
         self.tmpdir = tempfile.mkdtemp(prefix="udotcloud", suffix="tests")
 
     def tearDown(self):
+        ContainerTestCase.tearDown(self)
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     def test_generate_supervisor_include(self):
@@ -94,3 +98,22 @@ stderr_logfile=/var/log/supervisor/db_error.log
             service_tarball = fp.read()
         self.assertIn("Test Content 42\n", service_tarball)
         self.assertIn("DOTCLOUD_SERVICE_NAME", service_tarball)
+
+    def test_unpack_tarball(self):
+        self.application = Application(os.path.join(self.path, "simple_gunicorn_gevent_app"), {})
+        self.service = self.application.services[0]
+        application_tarball = os.path.join(self.tmpdir, "application.tar")
+        with open(application_tarball, "w") as fp:
+            fp.write("Test Content 42\n")
+        service_tarball = self.service._generate_service_tarball(self.tmpdir, application_tarball)
+        self.service._unpack_service_tarball(service_tarball.dest, self.container)
+        self.assertIsNotNone(self.container.result)
+        result = self.container.result.instantiate()
+        try:
+            with result.run(["ls", "-lFh", "/tmp"]):
+                pass
+            self.assertIn("application.tar", result.logs)
+            self.assertIn("service.tar", result.logs)
+        finally:
+            if result.result:
+                result.result.destroy()
