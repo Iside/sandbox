@@ -72,4 +72,18 @@ def main():
     logging.debug("Starting with base image: {0}".format(
         base_image.revspec if base_image else "default"
     ))
-    application.build(base_image)
+    logging.info("{0} successfully loaded with {1} service(s): {2}".format(
+        application.name,
+        len(application.services),
+        ", ".join([
+            "{0} ({1})".format(s.name, s.type) for s in application.services
+        ])
+    ))
+    result_images = application.build(base_image)
+    logging.info("{0} successfully built:\n    - {1}".format(
+        application.name,
+        "\n    - ".join([
+            "{0}: {1}".format(service, image)
+            for service, image in result_images.iteritems()
+        ])
+    ))

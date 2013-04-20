@@ -69,12 +69,14 @@ class Application(object):
                 for service in self.services
             ]
             gevent.joinall(greenlets)
+        return {service.name: service.result_image for service in self.services}
 
 class Service(object):
 
     def __init__(self, application, name, definition):
         self._application = application
         self.name = name
+        self.result_image = None
         for k, v in definition.iteritems():
             setattr(self, k, v)
         self.environment["DOTCLOUD_SERVICE_NAME"] = self.name
@@ -181,3 +183,4 @@ stderr_logfile=/var/log/supervisor/{name}_error.log
         ))
         container = base_image.instantiate(commit_as=self._result_revspec())
         self._unpack_service_tarball(svc_tarball.dest, container)
+        self.result_image = container.result
