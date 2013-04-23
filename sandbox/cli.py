@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import colorama
 import logging
 import re
 import string
@@ -8,6 +9,7 @@ import sys
 
 from .containers import ImageRevSpec, Image
 from .exceptions import UnkownImageError
+from .debug import configure_logging, log_success
 from .sources import Application
 
 def parse_environment_variables(env_list):
@@ -31,6 +33,8 @@ def parse_environment_variables(env_list):
     return env_dict
 
 def main():
+    colorama.init()
+
     parser = argparse.ArgumentParser(
         description="Build Docker images for the given dotCloud application"
     )
@@ -51,7 +55,7 @@ def main():
 
     args = parser.parse_args()
 
-    logging.basicConfig(level=args.log_lvl)
+    configure_logging(args.log_lvl)
 
     env = parse_environment_variables(args.env) if args.env else {}
     try:
@@ -80,7 +84,7 @@ def main():
         ])
     ))
     result_images = application.build(base_image)
-    logging.info("{0} successfully built:\n    - {1}".format(
+    log_success("{0} successfully built:\n    - {1}".format(
         application.name,
         "\n    - ".join([
             "{0}: {1}".format(service, image)

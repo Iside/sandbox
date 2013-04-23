@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys
-
 from setuptools import setup
 
-requirements = ["pyyaml"]
+requirements = ["pyyaml", "colorama"]
 test_requires = ["unittest2"]
 
 setup(
