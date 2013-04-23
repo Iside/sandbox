@@ -1,1 +1,2 @@
 include builder/dist/udotcloud.builder-*
+include builder/bootstrap.sh
