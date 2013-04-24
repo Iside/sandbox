@@ -92,7 +92,7 @@ stderr_logfile=/var/log/supervisor/db_error.log
         application_tarball = os.path.join(self.tmpdir, "application.tar")
         with open(application_tarball, "w") as fp:
             fp.write("Test Content 42\n")
-        service_tarball = self.service._generate_service_tarball(self.tmpdir, application_tarball)
+        service_tarball = self.service._generate_service_tarball(self.tmpdir, [application_tarball])
         self.assertTrue(os.path.exists(service_tarball.dest))
         with open(service_tarball.dest, "r") as fp:
             service_tarball = fp.read()
@@ -105,7 +105,7 @@ stderr_logfile=/var/log/supervisor/db_error.log
         application_tarball = os.path.join(self.tmpdir, "application.tar")
         with open(application_tarball, "w") as fp:
             fp.write("Test Content 42\n")
-        service_tarball = self.service._generate_service_tarball(self.tmpdir, application_tarball)
+        service_tarball = self.service._generate_service_tarball(self.tmpdir, [application_tarball])
         self.service._unpack_service_tarball(service_tarball.dest, self.container)
         self.assertIsNotNone(self.container.result)
         result = self.container.result.instantiate()

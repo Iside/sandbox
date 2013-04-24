@@ -7,6 +7,7 @@ import itertools
 import json
 import logging
 import os
+import pkg_resources
 import pprint
 import shutil
 import socket
@@ -17,6 +18,7 @@ import yaml
 from .buildfile import load_build_file
 from .containers import ImageRevSpec
 from .tarfile import Tarball
+from .version import __version__
 
 class Application(object):
 
@@ -52,24 +54,55 @@ class Application(object):
         shutil.rmtree(build_dir, ignore_errors=True)
 
     def build(self, base_image=None):
+        buildable_services = [s for s in self.services if s.buildable]
+        if not buildable_services:
+            return {}
+
         with self._build_dir() as build_dir:
-            logging.debug("Starting parallel build for {0} in {1}".format(
-                self.name, build_dir
-            ))
+            logging.debug("Archiving {0} in {1}".format(self.name, build_dir))
             app_tarball = Tarball.create_from_files(
                 ".",
                 os.path.join(build_dir, "application.tar"),
                 self._root
             )
             app_tarball.wait()
+            builder_sdist = os.path.join(build_dir, "udotcloud.builder.tar.gz")
+            shutil.copy(
+                pkg_resources.resource_filename(
+                    "udotcloud.sandbox",
+                    "../builder/dist/udotcloud.builder-{0}.tar.gz".format(
+                        __version__
+                    )
+                ),
+                builder_sdist
+            )
+            bootstrap_script = os.path.join(build_dir, "bootstrap.sh")
+            shutil.copy(
+                pkg_resources.resource_filename(
+                    "udotcloud.sandbox", "../builder/bootstrap.sh"
+                ),
+                bootstrap_script
+            )
+
+            app_files = [app_tarball.dest, builder_sdist, bootstrap_script]
+            logging.debug("Starting parallel build for {0} services".format(
+                len(buildable_services)
+            ))
             greenlets = [
-                gevent.spawn(
-                    service.build, build_dir, app_tarball.dest, base_image
-                )
-                for service in self.services
+                gevent.spawn(s.build, build_dir, app_files, base_image)
+                for s in buildable_services
             ]
             gevent.joinall(greenlets)
-        return {service.name: service.result_image for service in self.services}
+            for service, result in zip(buildable_services, greenlets):
+                try:
+                    result.get()
+                except Exception:
+                    logging.exception("Couldn't build service {0} ({1})".format(
+                        service.name, service.type
+                    ))
+                    return None
+
+        return {s.name: s.result_image for s in self.services}
 
 class Service(object):
 
@@ -138,11 +171,11 @@ stderr_logfile=/var/log/supervisor/{name}_error.log
             ])
         return env_json, env_yml, env_profile
 
-    def _generate_service_tarball(self, app_build_dir, app_tarball_path):
+    def _generate_service_tarball(self, app_build_dir, app_files):
         svc_build_dir = os.path.join(app_build_dir, self.name)
         os.mkdir(svc_build_dir)
         svc_tarball_name = "service.tar"
-        app_tarball_name = os.path.basename(app_tarball_path)
+        app_files_names = [os.path.basename(path) for path in app_files]
 
         self._generate_supervisor_include(svc_build_dir)
         self._generate_environment_files(svc_build_dir)
@@ -153,9 +186,11 @@ stderr_logfile=/var/log/supervisor/{name}_error.log
         )
         svc_tarball.wait()
 
-        os.link(app_tarball_path, os.path.join(svc_build_dir, app_tarball_name))
+        for name, path in zip(app_files_names, app_files):
+            os.link(path, os.path.join(svc_build_dir, name))
+        app_files_names.append(svc_tarball_name)
         svc_tarball = Tarball.create_from_files(
-            [svc_tarball_name, app_tarball_name],
+            app_files_names,
             os.path.join(app_build_dir, "{0}.tar".format(self.name)),
             svc_build_dir
         )
@@ -173,11 +208,9 @@ stderr_logfile=/var/log/supervisor/{name}_error.log
                     buf = source.read(8192)
                 dest.stdin.close()
 
-    def build(self, app_build_dir, app_tarball_path, base_image):
+    def build(self, app_build_dir, app_files, base_image):
         logging.info("Building service {0}…".format(self.name))
-        svc_tarball = self._generate_service_tarball(
-            app_build_dir, app_tarball_path
-        )
+        svc_tarball = self._generate_service_tarball(app_build_dir, app_files)
         logging.debug("Tarball for service {0} generated at {1}".format(
             self.name, svc_tarball.dest
         ))

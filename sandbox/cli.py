@@ -67,27 +67,35 @@ def main():
         logging.error("The image {0} doesn't exist".format(args.image))
         sys.exit(1)
 
-    logging.debug("Loading {0}".format(args.application))
-    application = Application(args.application, env)
-    logging.debug("Application's buildfile: {0}".format(application))
-    logging.debug("Application's environment: {0}".format(
-        application.environment
-    ))
-    logging.debug("Starting with base image: {0}".format(
-        base_image.revspec if base_image else "default"
-    ))
-    logging.info("{0} successfully loaded with {1} service(s): {2}".format(
-        application.name,
-        len(application.services),
-        ", ".join([
-            "{0} ({1})".format(s.name, s.type) for s in application.services
-        ])
-    ))
-    result_images = application.build(base_image)
-    log_success("{0} successfully built:\n    - {1}".format(
-        application.name,
-        "\n    - ".join([
-            "{0}: {1}".format(service, image)
-            for service, image in result_images.iteritems()
-        ])
-    ))
+    try:
+        logging.debug("Loading {0}".format(args.application))
+        application = Application(args.application, env)
+        logging.debug("Application's buildfile: {0}".format(application))
+        logging.debug("Application's environment: {0}".format(
+            application.environment
+        ))
+        logging.debug("Starting with base image: {0}".format(
+            base_image.revspec if base_image else "default"
+        ))
+        logging.info("{0} successfully loaded with {1} service(s): {2}".format(
+            application.name,
+            len(application.services),
+            ", ".join([
+                "{0} ({1})".format(s.name, s.type) for s in application.services
+            ])
+        ))
+        result_images = application.build(base_image)
+        if result_images:
+            log_success("{0} successfully built:\n    - {1}".format(
+                application.name,
+                "\n    - ".join([
+                    "{0}: {1}".format(service, image)
+                    for service, image in result_images.iteritems()
+                ])
+            ))
+        elif result_images is not None:
+            logging.warning("No buildable service found in {0}".format(
+                application.name
+            ))
+    except Exception:
+        logging.exception("Sorry, something wrong happened:")
