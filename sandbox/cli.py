@@ -69,7 +69,13 @@ def main():
 
     try:
         logging.debug("Loading {0}".format(args.application))
-        application = Application(args.application, env)
+        try:
+            application = Application(args.application, env)
+        except IOError as ex:
+            logging.error("Couldn't load {0}: {1}".format(
+                args.application, ex.strerror
+            ))
+            sys.exit(1)
         logging.debug("Application's buildfile: {0}".format(application))
         logging.debug("Application's environment: {0}".format(
             application.environment
@@ -98,4 +104,4 @@ def main():
                 application.name
             ))
     except Exception:
-        logging.exception("Sorry, something wrong happened:")
+        logging.exception("Sorry, the following bug happened:")
