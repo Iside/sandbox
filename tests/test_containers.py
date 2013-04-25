@@ -18,7 +18,7 @@ class ContainerTestCase(unittest.TestCase):
 
     def setUp(self):
         try:
-            self.image = Image(ImageRevSpec.parse("lopter/raring-base:latest"))
+            self.image = Image(ImageRevSpec.parse("lopter/sandbox-base:latest"))
             self.result_revspec = ImageRevSpec.parse(self._random_image_name())
             self.container = self.image.instantiate(commit_as=self.result_revspec)
         except UnkownImageError as ex:

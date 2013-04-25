@@ -108,6 +108,7 @@ class Service(object):
 
     def __init__(self, application, name, definition):
         self._application = application
+        self._extract_path = "/home/dotcloud"
         self.name = name
         self.result_image = None
         for k, v in definition.iteritems():
@@ -121,6 +122,9 @@ class Service(object):
         return ImageRevSpec.parse("{0}-{1}:ts-{2}".format(
             self._application.name, self.name, int(time.time())
         ))
+
+    def _build_revspec(self):
+        return ImageRevSpec(None, None, None, None) # keep build rev anonymous
 
     def _generate_supervisor_include(self, svc_build_dir):
         PROGRAM_TEMPLATE = """[program:{name}]
@@ -198,9 +202,9 @@ stderr_logfile=/var/log/supervisor/{name}_error.log
         return svc_tarball
 
     def _unpack_service_tarball(self, svc_tarball_path, container):
+        logging.debug("Extracting code in service {0}".format(self.name))
         with open(svc_tarball_path, "r") as source:
-            # XXX Extract in ~dotcloud?
-            tar_extract = ["tar", "-xf", "-", "-C", "/tmp"]
+            tar_extract = ["tar", "-xf", "-", "-C", self._extract_path]
             with container.run(tar_extract, stdin=container.PIPE) as dest:
                 buf = source.read(8192)
                 while buf:
@@ -214,6 +218,14 @@ stderr_logfile=/var/log/supervisor/{name}_error.log
         logging.debug("Tarball for service {0} generated at {1}".format(
             self.name, svc_tarball.dest
         ))
-        container = base_image.instantiate(commit_as=self._result_revspec())
+        # Upload all the code:
+        container = base_image.instantiate(commit_as=self._build_revspec())
         self._unpack_service_tarball(svc_tarball.dest, container)
+        # Install the builder via the bootstrap script
+        container = container.result.instantiate(commit_as=self._result_revspec())
+        bootstrap_script = os.path.join(self._extract_path, "bootstrap.sh")
+        with container.run([bootstrap_script]):
+            logging.debug("Installing builder in service {0}".format(self.name))
+        logging.debug("Builder bootstrap logs:\n{0}".format(container.logs))
         self.result_image = container.result
+        # And run it

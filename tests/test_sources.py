@@ -9,6 +9,7 @@ import unittest
 import yaml
 
 from udotcloud.sandbox import Application
+from udotcloud.sandbox.containers import ImageRevSpec, Image
 
 from test_containers import ContainerTestCase
 
@@ -26,6 +27,13 @@ class TestApplication(unittest.TestCase):
     def test_load_custom_packages_application(self):
         application = Application(os.path.join(self.path, "custom_app"), {})
         self.assertListEqual(application.services[0].systempackages, ["postgresql"])
+
+    def test_simple_application_build(self):
+        application = Application(os.path.join(self.path, "simple_gunicorn_gevent_app"), {})
+        images = application.build(base_image=Image(ImageRevSpec.parse("lopter/sandbox-base:latest")))
+        self.assertIsInstance(images, dict)
+        result = images.get("api")
+        self.assertIsNotNone(result)
 
 class TestService(ContainerTestCase):
 
@@ -110,7 +118,7 @@ stderr_logfile=/var/log/supervisor/db_error.log
         self.assertIsNotNone(self.container.result)
         result = self.container.result.instantiate()
         try:
-            with result.run(["ls", "-lFh", "/tmp"]):
+            with result.run(["ls", "-lFh", self.service._extract_path]):
                 pass
             self.assertIn("application.tar", result.logs)
             self.assertIn("service.tar", result.logs)
