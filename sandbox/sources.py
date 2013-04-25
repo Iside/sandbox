@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import contextlib
+import copy
 import gevent
 import gevent.subprocess
 import itertools
@@ -116,6 +117,10 @@ class Service(object):
         self.result_image = None
         for k, v in definition.iteritems():
             setattr(self, k, v)
+        # I don't really know what happens in the yaml library but looks like
+        # it does some caching and if we don't copy the environment here, the
+        # modified version will leak accross unit tests:
+        self.environment = copy.copy(self.environment)
         self.environment["DOTCLOUD_SERVICE_NAME"] = self.name
         self.environment["DOTCLOUD_SERVICE_ID"] = 0
         # TODO: actually build a list of services which are buildable or not:
