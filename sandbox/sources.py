@@ -53,38 +53,41 @@ class Application(object):
         yield build_dir
         shutil.rmtree(build_dir, ignore_errors=True)
 
+    def _generate_application_tarball(self, app_build_dir):
+        logging.debug("Archiving {0} in {1}".format(self.name, app_build_dir))
+        app_tarball = Tarball.create_from_files(
+            ".",
+            os.path.join(app_build_dir, "application.tar"),
+            self._root
+        )
+        app_tarball.wait()
+        builder_sdist = os.path.join(app_build_dir, "udotcloud.builder.tar.gz")
+        shutil.copy(
+            pkg_resources.resource_filename(
+                "udotcloud.sandbox",
+                "../builder/dist/udotcloud.builder-{0}.tar.gz".format(
+                    __version__
+                )
+            ),
+            builder_sdist
+        )
+        bootstrap_script = os.path.join(app_build_dir, "bootstrap.sh")
+        shutil.copy(
+            pkg_resources.resource_filename(
+                "udotcloud.sandbox", "../builder/bootstrap.sh"
+            ),
+            bootstrap_script
+        )
+
+        return [app_tarball.dest, builder_sdist, bootstrap_script]
+
     def build(self, base_image=None):
         buildable_services = [s for s in self.services if s.buildable]
         if not buildable_services:
             return {}
 
         with self._build_dir() as build_dir:
-            logging.debug("Archiving {0} in {1}".format(self.name, build_dir))
-            app_tarball = Tarball.create_from_files(
-                ".",
-                os.path.join(build_dir, "application.tar"),
-                self._root
-            )
-            app_tarball.wait()
-            builder_sdist = os.path.join(build_dir, "udotcloud.builder.tar.gz")
-            shutil.copy(
-                pkg_resources.resource_filename(
-                    "udotcloud.sandbox",
-                    "../builder/dist/udotcloud.builder-{0}.tar.gz".format(
-                        __version__
-                    )
-                ),
-                builder_sdist
-            )
-            bootstrap_script = os.path.join(build_dir, "bootstrap.sh")
-            shutil.copy(
-                pkg_resources.resource_filename(
-                    "udotcloud.sandbox", "../builder/bootstrap.sh"
-                ),
-                bootstrap_script
-            )
-
-            app_files = [app_tarball.dest, builder_sdist, bootstrap_script]
+            app_files = self._generate_application_tarball(build_dir)
             logging.debug("Starting parallel build for {0} services".format(
                 len(buildable_services)
             ))
