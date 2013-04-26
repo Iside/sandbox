@@ -45,6 +45,20 @@ class TestBuilder(unittest.TestCase):
 
     def test_builder_unpack(self):
         self.builder._unpack_sources()
+        code_dir = os.path.join(self.installdir, "code")
+        current_dir = os.path.join(self.installdir, "current")
+
+        self.assertTrue(os.path.isdir(code_dir))
+        self.assertTrue(os.path.islink(current_dir))
+        self.assertTrue(os.path.exists(os.path.join(code_dir, "dotcloud.yml")))
+        self.assertTrue(os.path.exists(os.path.join(current_dir, "dotcloud.yml")))
+        self.assertFalse(os.path.exists(os.path.join(self.installdir, "application.tar")))
+
+        self.assertTrue(os.path.exists(os.path.join(self.installdir, "supervisor.conf")))
+        self.assertTrue(os.path.exists(os.path.join(self.installdir, "environment.json")))
+        self.assertTrue(os.path.exists(os.path.join(self.installdir, "environment.yml")))
+        self.assertFalse(os.path.exists(os.path.join(self.installdir, "service.tar")))
+        self.assertFalse(os.path.exists(os.path.join(self.installdir, "definition.json")))
 
 class TestBuilderPythonWorker(TestBuilder):
 

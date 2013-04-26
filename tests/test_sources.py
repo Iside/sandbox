@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import contextlib
 import logging; logging.basicConfig(level="DEBUG")
 import json
 import os
@@ -12,6 +13,12 @@ from udotcloud.sandbox import Application
 from udotcloud.sandbox.containers import ImageRevSpec, Image
 
 from test_containers import ContainerTestCase
+
+@contextlib.contextmanager
+def _destroy_result(container):
+    yield
+    if container.result:
+        container.result.destroy()
 
 class TestApplication(unittest.TestCase):
 
@@ -34,6 +41,20 @@ class TestApplication(unittest.TestCase):
         self.assertIsInstance(images, dict)
         result = images.get("api")
         self.assertIsNotNone(result)
+        container = result.instantiate(commit_as=ImageRevSpec.parse(
+            ContainerTestCase.random_image_name()
+        ))
+        with _destroy_result(container):
+            with container.run(["ls", "/home/dotcloud/current"]):
+                pass
+            self.assertIn("dotcloud.yml", container.logs)
+        container = result.instantiate(commit_as=ImageRevSpec.parse(
+            ContainerTestCase.random_image_name()
+        ))
+        with _destroy_result(container):
+            with container.run(["stat", "-c", "%u", "/home/dotcloud/code"]):
+                pass
+            self.assertIn("1000", container.logs)
 
 class TestService(ContainerTestCase):
 
@@ -117,11 +138,8 @@ stderr_logfile=/var/log/supervisor/db_error.log
         self.service._unpack_service_tarball(service_tarball.dest, self.container)
         self.assertIsNotNone(self.container.result)
         result = self.container.result.instantiate()
-        try:
+        with _destroy_result(result):
             with result.run(["ls", "-lFh", self.service._extract_path]):
                 pass
             self.assertIn("application.tar", result.logs)
             self.assertIn("service.tar", result.logs)
-        finally:
-            if result.result:
-                result.result.destroy()

@@ -11,7 +11,7 @@ from udotcloud.sandbox.exceptions import UnkownImageError
 class ContainerTestCase(unittest.TestCase):
 
     @staticmethod
-    def _random_image_name():
+    def random_image_name():
         return "{0}:unittest".format("".join(
             random.choice(string.ascii_lowercase) for i in xrange(10)
         ))
@@ -19,7 +19,7 @@ class ContainerTestCase(unittest.TestCase):
     def setUp(self):
         try:
             self.image = Image(ImageRevSpec.parse("lopter/sandbox-base:latest"))
-            self.result_revspec = ImageRevSpec.parse(self._random_image_name())
+            self.result_revspec = ImageRevSpec.parse(self.random_image_name())
             self.container = self.image.instantiate(commit_as=self.result_revspec)
         except UnkownImageError as ex:
             return self.skipTest(str(ex))

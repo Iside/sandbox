@@ -123,6 +123,9 @@ class Service(object):
         self.environment = copy.copy(self.environment)
         self.environment["DOTCLOUD_SERVICE_NAME"] = self.name
         self.environment["DOTCLOUD_SERVICE_ID"] = 0
+        # Let's keep it as real dict too, so we can easily dump it:
+        self._definition = definition
+        self._definition['environment'] = self.environment
         # TODO: actually build a list of services which are buildable or not:
         self.buildable = True
 
@@ -183,6 +186,12 @@ stderr_logfile=/var/log/supervisor/{name}_error.log
             ])
         return env_json, env_yml, env_profile
 
+    def _dump_service_definition(self, svc_build_dir):
+        definition = os.path.join(svc_build_dir, "definition.json")
+        with open(definition, "w") as fp:
+            json.dump(self._definition, fp, indent=4)
+        return definition
+
     def _generate_service_tarball(self, app_build_dir, app_files):
         svc_build_dir = os.path.join(app_build_dir, self.name)
         os.mkdir(svc_build_dir)
@@ -191,6 +200,7 @@ stderr_logfile=/var/log/supervisor/{name}_error.log
 
         self._generate_supervisor_include(svc_build_dir)
         self._generate_environment_files(svc_build_dir)
+        self._dump_service_definition(svc_build_dir)
         svc_tarball = Tarball.create_from_files(
             ".",
             os.path.join(svc_build_dir, svc_tarball_name),
@@ -230,10 +240,24 @@ stderr_logfile=/var/log/supervisor/{name}_error.log
         container = base_image.instantiate(commit_as=self._build_revspec())
         self._unpack_service_tarball(svc_tarball.dest, container)
         # Install the builder via the bootstrap script
-        container = container.result.instantiate(commit_as=self._result_revspec())
+        container = container.result.instantiate(
+            commit_as=self._build_revspec()
+        )
         bootstrap_script = os.path.join(self._extract_path, "bootstrap.sh")
         with container.run([bootstrap_script]):
             logging.debug("Installing builder in service {0}".format(self.name))
         logging.debug("Builder bootstrap logs:\n{0}".format(container.logs))
-        self.result_image = container.result
         # And run it
+        container = container.result.instantiate(
+            commit_as=self._result_revspec()
+        )
+        # XXX: should be a constant in the builder package:
+        dotcloud_builder_path = "/var/lib/dotcloud/builder/bin/dotcloud-builder"
+        with container.run(
+            [dotcloud_builder_path, self._extract_path], as_user="dotcloud"
+        ):
+            logging.debug("Running builder in service {0}".format(self.name))
+        logging.debug("Build logs for {0}:\n{1}".format(
+            self.name, container.logs
+        ))
+        self.result_image = container.result
