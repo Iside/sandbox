@@ -3,12 +3,12 @@
 import logging; logging.basicConfig(level="DEBUG")
 import random
 import string
-import unittest2
+import unittest
 
 from udotcloud.sandbox.containers import ImageRevSpec, Image
 from udotcloud.sandbox.exceptions import UnkownImageError
 
-class ContainerTestCase(unittest2.TestCase):
+class ContainerTestCase(unittest.TestCase):
 
     @staticmethod
     def _random_image_name():

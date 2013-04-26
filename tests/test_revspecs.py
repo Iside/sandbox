@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import logging; logging.basicConfig(level="DEBUG")
-import unittest2
+import unittest
 
 from udotcloud.sandbox.containers import ImageRevSpec, _ImageRevSpec
 
-class TestRevSpecs(unittest2.TestCase):
+class TestRevSpecs(unittest.TestCase):
 
     human_revspecs = {
         "": None,

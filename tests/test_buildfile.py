@@ -2,11 +2,11 @@
 # Started by François-Xavier Bourlet <fx@dotcloud.com>, Oct 2011.
 
 import logging; logging.basicConfig(level="DEBUG")
-import unittest2
+import unittest
 
 from udotcloud.sandbox.buildfile import load_build_file, SchemaError
 
-class TestBuildFile(unittest2.TestCase):
+class TestBuildFile(unittest.TestCase):
 
 
     def test_simple(self):

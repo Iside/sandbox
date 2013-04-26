@@ -5,14 +5,14 @@ import json
 import os
 import shutil
 import tempfile
-import unittest2
+import unittest
 import yaml
 
 from udotcloud.sandbox import Application
 
 from test_containers import ContainerTestCase
 
-class TestApplication(unittest2.TestCase):
+class TestApplication(unittest.TestCase):
 
     def setUp(self):
         self.path = os.path.dirname(__file__)

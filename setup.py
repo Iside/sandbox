@@ -28,7 +28,6 @@ subprocess.check_call(
 
 # Cython is a dependency of gevent:
 requirements = ["pyyaml", "colorama>=0.2.5,<0.3", "Cython>=0.19,<0.20", "gevent"]
-test_requires = ["unittest2"]
 
 setup(
     name="udotcloud.sandbox",

@@ -7,11 +7,11 @@ import os
 import shutil
 import subprocess
 import tempfile
-import unittest2
+import unittest
 
 from udotcloud.sandbox import tarfile
 
-class TestTarballfile(unittest2.TestCase):
+class TestTarballfile(unittest.TestCase):
 
     def setUp(self):
         self.path = os.path.dirname(__file__)
