@@ -99,9 +99,11 @@ def main():
                     for service, image in result_images.iteritems()
                 ])
             ))
+            sys.exit(0)
         elif result_images is not None:
             logging.warning("No buildable service found in {0}".format(
                 application.name
             ))
     except Exception:
         logging.exception("Sorry, the following bug happened:")
+    sys.exit(1)
