@@ -51,7 +51,7 @@ class Container(object):
         pass
 
     @contextlib.contextmanager
-    def run(self, cmd, stdin=None, stdout=None, stderr=None):
+    def run(self, cmd, as_user=None, stdin=None, stdout=None, stderr=None):
         """Run the specified command in a new container.
 
         This is a context manager that returns a :class:`subprocess.Popen`
@@ -61,6 +61,7 @@ class Container(object):
         The new image can be accessed via the :attr:`result` attribute.
 
         :param cmd: the program to run as a list of arguments.
+        :param as_user: run the command under this username or uid.
         :param stdout, stderr: as in :class:`subprocess.Popen` except that you
                                should use Container.PIPE and Container.STDOUT
                                instead of subprocess.PIPE and subprocess.STDOUT.
@@ -83,6 +84,8 @@ class Container(object):
             cmd, self.image
         ))
 
+        as_user = ["-u", as_user] if as_user else []
+
         try:
             # If stdin is None, start the container in detached mode, this will
             # print the id on stdout, then we simply wait for the container to
@@ -92,7 +95,8 @@ class Container(object):
             if stdin is None:
                 with _CatchDockerError():
                     self._id = gevent.subprocess.check_output(
-                        ["docker", "run", "-d", self.image.revision] + cmd
+                        ["docker", "run", "-d"] + as_user
+                        + [self.image.revision] + cmd
                     ).strip()
                 # docker wait prints the number of second we waited, ignore it:
                 with open("/dev/null", "w") as ignore:
@@ -101,7 +105,8 @@ class Container(object):
                     )
             else:
                 docker = gevent.subprocess.Popen(
-                    ["docker", "run", "-i", "-a", "stdin", self.image.revision] + cmd,
+                    ["docker", "run", "-i", "-a", "stdin"]
+                    + as_user + [self.image.revision] + cmd,
                     stdin=stdin,
                     stdout=self.PIPE
                 )

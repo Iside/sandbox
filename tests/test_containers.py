@@ -44,3 +44,13 @@ class TestContainers(ContainerTestCase):
             cat.stdin.close() # EOF
         self.assertEqual(self.container.logs, "TRAVERSABLE WORMHOLE!\n")
         self.assertEqual(self.container.result.revspec, self.result_revspec)
+
+    def test_container_as_user(self):
+        with self.container.run(["/bin/ls", "/root"], as_user="nobody"):
+            pass
+        self.assertIn("Permission denied", self.container.logs)
+
+    def test_container_as_user_stdin(self):
+        with self.container.run(["/bin/ls", "/root"], as_user="nobody", stdin=self.container.PIPE) as ls:
+            ls.stdin.close()
+        self.assertIn("Permission denied", self.container.logs)
