@@ -7,6 +7,8 @@ import logging
 import os
 import subprocess
 
+from .services import get_service
+
 @contextlib.contextmanager
 def _ignore_eexist():
     try:
@@ -77,3 +79,7 @@ class Builder(object):
     def build(self):
         if not self._unpack_sources():
             return False
+        service_builder = get_service(
+            self._build_dir, self._current_dir, self._svc_definition
+        )
+        service_builder.build()
