@@ -36,20 +36,39 @@ def main():
     colorama.init()
 
     parser = argparse.ArgumentParser(
-        description="Build Docker images for the given dotCloud application"
-    )
-    parser.add_argument("-e", "--env", action="append",
-        help="Define an environment variable (in the form KEY=VALUE) during the build"
-    )
-    parser.add_argument("-i", "--image",
-        help="Specify which Docker image to use as a starting point to build services"
+        description="""Build and run dotCloud applications locally using Docker.
+
+Since Docker doesn't have orchestration features only stateless services will
+be recognized (i.e: database won't be started, and their infos won't be
+generated in the environment).
+"""
     )
     parser.add_argument("-v", "--verbosity", dest="log_lvl", default="info",
         type=string.upper,
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         help="Log level to use on stderr"
     )
-    parser.add_argument("application",
+
+    subparsers = parser.add_subparsers(dest="cmd")
+
+    parser_build = subparsers.add_parser("build",
+        help="build Docker images from the given dotCloud application (directory)"
+    )
+    parser_build.add_argument("-e", "--env", action="append",
+        help="Define an environment variable (in the form KEY=VALUE) during the build"
+    )
+    parser_build.add_argument("-i", "--image",
+        help="Specify which Docker image to use as a starting point to build services"
+    )
+    parser_build.add_argument("application",
+        help="Path to your application source directory (where your dotcloud.yml is)"
+    )
+
+    parser_run = subparsers.add_parser("run",
+        help="run the given dotCloud application, using images previously built "
+            "with the build command"
+    )
+    parser_run.add_argument("application",
         help="Path to your application source directory (where your dotcloud.yml is)"
     )
 
@@ -80,9 +99,6 @@ def main():
         logging.debug("Application's environment: {0}".format(
             application.environment
         ))
-        logging.debug("Starting with base image: {0}".format(
-            base_image.revspec if base_image else "default"
-        ))
         logging.info("{0} successfully loaded with {1} service(s): {2}".format(
             application.name,
             len(application.services),
@@ -90,20 +106,27 @@ def main():
                 "{0} ({1})".format(s.name, s.type) for s in application.services
             ])
         ))
-        result_images = application.build(base_image)
-        if result_images:
-            log_success("{0} successfully built:\n    - {1}".format(
-                application.name,
-                "\n    - ".join([
-                    "{0}: {1}".format(service, image)
-                    for service, image in result_images.iteritems()
-                ])
+
+        if args.cmd == "build":
+            logging.debug("Starting build with base image: {0}".format(
+                base_image.revspec if base_image else "default"
             ))
-            sys.exit(0)
-        elif result_images is not None:
-            logging.warning("No buildable service found in {0}".format(
-                application.name
-            ))
+            result_images = application.build(base_image)
+            if result_images:
+                log_success("{0} successfully built:\n    - {1}".format(
+                    application.name,
+                    "\n    - ".join([
+                        "{0}: {1}".format(service, image)
+                        for service, image in result_images.iteritems()
+                    ])
+                ))
+                sys.exit(0)
+            elif result_images is not None:
+                logging.warning("No buildable service found in {0}".format(
+                    application.name
+                ))
+        elif args.cmd == "run":
+            pass # Look for the images and start them
     except Exception:
         logging.exception("Sorry, the following bug happened:")
     sys.exit(1)
