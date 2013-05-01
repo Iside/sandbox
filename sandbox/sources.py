@@ -87,6 +87,13 @@ class Application(object):
         if not buildable_services:
             return {}
 
+        if not base_image:
+            # TODO: design something to automatically pick a base image.
+            logging.error(
+                "You need to specify the base image to use via the -i option"
+            )
+            return
+
         with self._build_dir() as build_dir:
             app_files = self._generate_application_tarball(build_dir)
             logging.debug("Starting parallel build for {0} services".format(
