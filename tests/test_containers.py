@@ -54,3 +54,13 @@ class TestContainers(ContainerTestCase):
         with self.container.run(["/bin/ls", "/root"], as_user="nobody", stdin=self.container.PIPE) as ls:
             ls.stdin.close()
         self.assertIn("Permission denied", self.container.logs)
+
+    def test_image_tag(self):
+        with self.container.run(["pwd"]):
+            pass
+        self.assertEqual(self.container.result.tag, "unittest")
+        tagged = self.container.result.add_tag("foobar")
+        self.assertTupleEqual(
+            tagged.revspec[:-1], self.container.result.revspec[:-1]
+        )
+        self.assertEqual(tagged.tag, "foobar")

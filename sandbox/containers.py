@@ -2,6 +2,7 @@
 
 import collections
 import contextlib
+import copy
 import gevent
 import gevent.subprocess
 import logging
@@ -363,17 +364,51 @@ class Image(object):
             self.__class__.__name__, name
         ))
 
-    def instantiate(self, *args, **kwargs):
-        if self.revspec:
-            return Container(self, *args, **kwargs)
-        raise UnkownImageError(
-            "You tried to instantiate a container from a destroyed image"
-        )
+    # NOTE: This is not perfect: if you instantiate several Image object for
+    # the same revision and destroy one of them, the others become invalid, but
+    # it will not be catched by this.
+    def _check_exists(method):
+        def wrapped(self, *args, **kwargs):
+            if not self.revspec:
+                raise UnkownImageError(
+                    "You tried to {0} a destroyed image".format(method.__name__)
+                )
+            return method(self, *args, **kwargs)
+        return wrapped
 
+    @_check_exists
+    def instantiate(self, *args, **kwargs):
+        return Container(self, *args, **kwargs)
+
+    @_check_exists
     def destroy(self):
+        """Remove the image from Docker.
+
+        .. warning:: Once you have called this method the current object is
+                     invalidated and you can't call further method on it. If
+                     you have multiple :class:`Image` objects pointing to the
+                     same revision (but with different tags for example), and
+                     destroy one of them, then the others will become invalid
+                     too.
+        """
+
         logging.debug("Destroying image {0} from Docker".format(self.revspec))
         with _CatchDockerError():
             gevent.subprocess.check_call([
                 "docker", "rmi", self.revspec.revision
             ])
         self.revspec = None
+
+    @_check_exists
+    def add_tag(self, tag):
+        logging.debug("Tagging {0} as {1}".format(self.revspec, tag))
+        with _CatchDockerError():
+            gevent.subprocess.check_call([
+                "docker", "tag", self.revspec.revision, self.revspec.fqrn, tag
+            ])
+        # We can't reinstantiate an Image object, because it might resolve to
+        # the wrong revspec when it parses the output of docker images (and
+        # it's slower anyway):
+        new_image = copy.copy(self)
+        new_image.revspec = ImageRevSpec(*(self.revspec[:-1] + (tag,)))
+        return new_image

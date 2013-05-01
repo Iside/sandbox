@@ -115,6 +115,9 @@ class Application(object):
 
         return {s.name: s.result_image for s in self.services}
 
+    def run(self):
+        pass
+
 class Service(object):
 
     def __init__(self, application, name, definition):
