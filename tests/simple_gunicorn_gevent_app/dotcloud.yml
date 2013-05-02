@@ -8,3 +8,5 @@ api:
         python_version: v2.7
     prebuild: ./buildhook prebuild
     postbuild: ./buildhook postbuild
+    environment:
+        API_ENDPOINT: http://api.example.com/v1/

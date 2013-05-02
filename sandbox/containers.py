@@ -5,6 +5,8 @@ import contextlib
 import copy
 import gevent
 import gevent.subprocess
+import itertools
+import json
 import logging
 import re
 
@@ -51,6 +53,9 @@ class Container(object):
         # XXX: pay attention to the tricks done in snapshots/worker.py
         pass
 
+    # XXX: Maybe this should be named to something else to better reflect the
+    # fact that it's really an authoring tool, and reduce the confusion with
+    # run_stream_logs.
     @contextlib.contextmanager
     def run(self, cmd, as_user=None, stdin=None, stdout=None, stderr=None):
         """Run the specified command in a new container.
@@ -81,8 +86,8 @@ class Container(object):
         EBADF in docker).
         """
 
-        logging.debug("Starting {0} in a {1} container".format(
-            cmd, self.image
+        logging.debug("Starting {0} in a {1} container as user {2}".format(
+            cmd, self.image, as_user or "root"
         ))
 
         as_user = ["-u", as_user] if as_user else []
@@ -183,6 +188,68 @@ class Container(object):
                 with _CatchDockerError():
                     gevent.subprocess.check_call(["docker", "rm", self._id])
                 logging.debug("Container {0} destroyed".format(self._id))
+
+    @contextlib.contextmanager
+    def run_stream_logs(self, cmd, as_user=None, ports=[], env={}, output=None):
+        """Run the specified command and wait for it, logs are streamed.
+
+        This is a context manager that yields a :class:`subprocess.Popen`
+        instance. When the context manager exits, it automatically waits for
+        the docker command to terminate (if you didn't do it already). The
+        object yielded will expose a `ports` attribute which is a dict with the
+        ports you defined as keys and the ports they got mapped to, on the host
+        public address, as values.
+
+        .. note:: stdout and stderr will be mixed in the logs output, this is
+                  currently a limitation of Docker.
+
+        :param cmd: the program to run as a list of arguments.
+        :param as_user: run the command under this username or uid.
+        :param ports: list of ports in the container to expose on the host.
+        :param env: define additional environment variables.
+        :param output: stream the logs to this file object or fd (by default
+                       they are streamed to stdout), it can also be
+                       Container.PIPE.
+
+        .. warning:: due to limitations in Docker (see :method:`run`), the
+                     first lines of output might be lost.
+        """
+
+        logging.debug("Starting {0} in a {1} container as user {2}".format(
+            cmd, self.image, as_user or "root"
+        ))
+
+        as_user = ["-u", as_user] if as_user else []
+        ports = [str(p) for p in ports]
+        ports = list(
+            itertools.chain.from_iterable(itertools.product(["-p"], ports))
+        )
+        env = ["{0}={1}".format(k, v) for k, v in env.iteritems()]
+        env = list(
+            itertools.chain.from_iterable(itertools.product(["-e"], env))
+        )
+        with _CatchDockerError():
+            self._id = gevent.subprocess.check_output(
+                ["docker", "run", "-d"] + as_user + env
+                + ports + [self.image.revision] + cmd
+            ).strip()
+            docker = gevent.subprocess.Popen(
+                ["docker", "attach", self._id],
+                stdout=output, stderr=self.STDOUT
+            )
+            container_infos = json.loads(gevent.subprocess.check_output(
+                ["docker", "inspect", self._id]
+            ).strip())
+            port_mapping = container_infos['NetworkSettings']['PortMapping']
+            docker.ports = {int(k): int(v) for k, v in port_mapping.iteritems()}
+
+        yield docker
+
+        logging.debug("Waiting for container {0} to terminate".format(
+            self._id
+        ))
+        docker.wait()
+        logging.debug("Container {0} stopped".format(self._id))
 
 _ImageRevSpec = collections.namedtuple(
     "_ImageRevSpec", ["username", "repository", "revision", "tag"]

@@ -166,7 +166,7 @@ _schema = _require(
                 'processes': _optional(dict, default={}),
                 'ports': _optional(dict, {
                     '*': _optional(str, allowed=('port', set(('http', 'tcp', 'udp'))))
-                }),
+                }, default={}),
                 'buildscript': _optional(str),
                 'prebuild': _optional(str),
                 'postbuild': _optional(str),

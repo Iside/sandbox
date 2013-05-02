@@ -84,6 +84,12 @@ class TestBuilderPythonWorker(TestBuilderCase):
         self.assertTrue(os.path.exists(os.path.join(self.current_dir, "prebuild")))
         self.assertTrue(os.path.exists(os.path.join(self.current_dir, "postbuild")))
 
+        # Check that the virtualenv activation has been correctly appended to
+        # dotcloud_profile:
+        dotcloud_profile = open(os.path.join(self.installdir, "dotcloud_profile")).read()
+        self.assertIn("DOTCLOUD_SERVICE_ID", dotcloud_profile)
+        self.assertEqual(dotcloud_profile.count("env/bin/activate"), 1)
+
         virtualenv_bin = os.path.join(self.installdir, "env", "bin")
         installed_packages = gevent.subprocess.Popen(
             [os.path.join(virtualenv_bin, "pip"), "freeze"],

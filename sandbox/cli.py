@@ -32,6 +32,37 @@ def parse_environment_variables(env_list):
         env_dict[key] = value
     return env_dict
 
+def cmd_build(args, application):
+    try:
+        base_image = Image(ImageRevSpec.parse(args.image)) if args.image else None
+    except ValueError as ex:
+        logging.error("Can't parse your image revision/name: {0}".format(ex))
+        sys.exit(1)
+    except UnkownImageError:
+        logging.error("The image {0} doesn't exist".format(args.image))
+        sys.exit(1)
+
+    logging.debug("Starting build with base image: {0}".format(
+        base_image.revspec if base_image else "default"
+    ))
+    result_images = application.build(base_image)
+    if result_images:
+        log_success("{0} successfully built:\n    - {1}".format(
+            application.name,
+            "\n    - ".join([
+                "{0}: {1}".format(service, image)
+                for service, image in result_images.iteritems()
+            ])
+        ))
+        sys.exit(0)
+    elif result_images is not None:
+        logging.warning("No buildable service found in {0}".format(
+            application.name
+        ))
+
+def cmd_run(args, application):
+    sys.exit(0 if application.run() else 1)
+
 def main():
     colorama.init()
 
@@ -66,25 +97,19 @@ generated in the environment).
 
     parser_run = subparsers.add_parser("run",
         help="run the given dotCloud application, using images previously built "
-            "with the build command"
+            "with the build command (EXPERIMENTAL)"
     )
     parser_run.add_argument("application",
         help="Path to your application source directory (where your dotcloud.yml is)"
     )
 
     args = parser.parse_args()
+    if getattr(args, "env", None):
+        env = parse_environment_variables(args.env)
+    else:
+        env = {}
 
     configure_logging(args.log_lvl)
-
-    env = parse_environment_variables(args.env) if args.env else {}
-    try:
-        base_image = Image(ImageRevSpec.parse(args.image)) if args.image else None
-    except ValueError as ex:
-        logging.error("Can't parse your image revision/name: {0}".format(ex))
-        sys.exit(1)
-    except UnkownImageError:
-        logging.error("The image {0} doesn't exist".format(args.image))
-        sys.exit(1)
 
     try:
         logging.debug("Loading {0}".format(args.application))
@@ -108,25 +133,9 @@ generated in the environment).
         ))
 
         if args.cmd == "build":
-            logging.debug("Starting build with base image: {0}".format(
-                base_image.revspec if base_image else "default"
-            ))
-            result_images = application.build(base_image)
-            if result_images:
-                log_success("{0} successfully built:\n    - {1}".format(
-                    application.name,
-                    "\n    - ".join([
-                        "{0}: {1}".format(service, image)
-                        for service, image in result_images.iteritems()
-                    ])
-                ))
-                sys.exit(0)
-            elif result_images is not None:
-                logging.warning("No buildable service found in {0}".format(
-                    application.name
-                ))
+            cmd_build(args, application)
         elif args.cmd == "run":
-            pass # Look for the images and start them
+            cmd_run(args, application)
     except Exception:
         logging.exception("Sorry, the following bug happened:")
     sys.exit(1)

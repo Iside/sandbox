@@ -4,6 +4,8 @@ import logging
 import os
 import subprocess
 
+# TODO: Move the environment and supervisor files generation here.
+
 class ServiceBase(object):
 
     def __init__(self, build_dir, svc_dir, definition):
@@ -47,6 +49,7 @@ class PythonWorker(ServiceBase):
         self._virtualenv_dir = os.path.join(self._build_dir, "env")
         self._pip = os.path.join(self._virtualenv_dir, "bin", "pip")
         self._pip_cache = os.path.join(self._build_dir, ".pip-cache")
+        self._profile = os.path.join(self._build_dir, "dotcloud_profile")
         self._requirements = os.path.join(self._svc_dir, "requirements.txt")
         self._svc_setup_py = os.path.join(self._svc_dir, "setup.py")
 
@@ -59,6 +62,10 @@ class PythonWorker(ServiceBase):
         subprocess.check_call([
             "virtualenv", "-p", python_version, self._virtualenv_dir
         ])
+        with open(self._profile, 'a') as profile:
+            profile.write("\n. {0}\n".format(
+                os.path.join(self._virtualenv_dir, "bin/activate")
+            ))
 
     def _install_requirements(self):
         if os.path.exists(self._requirements):

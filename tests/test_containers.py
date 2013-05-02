@@ -64,3 +64,33 @@ class TestContainers(ContainerTestCase):
             tagged.revspec[:-1], self.container.result.revspec[:-1]
         )
         self.assertEqual(tagged.tag, "foobar")
+
+    def test_run_stream_logs(self):
+        with self.container.run_stream_logs(
+            ["/bin/sh", "-c", "sleep 1; echo tick"],
+            output=self.container.PIPE
+        ) as container:
+            self.assertIsInstance(container.ports, dict)
+            output = container.communicate()[0]
+            self.assertIn("tick\n", output)
+
+    def test_run_stream_logs_ports(self):
+        with self.container.run_stream_logs(
+            ["/bin/sh", "-c", "sleep 1; echo tick"],
+            output=self.container.PIPE,
+            ports=[22]
+        ) as container:
+            self.assertIsInstance(container.ports, dict)
+            self.assertIn(22, container.ports)
+            output = container.communicate()[0]
+            self.assertIn("tick\n", output)
+
+    def test_run_stream_logs_env(self):
+        with self.container.run_stream_logs(
+            ["/bin/sh", "-c", "sleep 1; env"],
+            output=self.container.PIPE,
+            env={"TOTO": "POUET"}
+        ) as container:
+            self.assertIsInstance(container.ports, dict)
+            output = container.communicate()[0]
+            self.assertIn("TOTO=POUET", output)

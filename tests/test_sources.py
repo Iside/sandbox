@@ -67,6 +67,15 @@ class TestService(ContainerTestCase):
         ContainerTestCase.tearDown(self)
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
+    def test_allocate_custom_ports(self):
+        self.application = Application(os.path.join(self.path, "simple_gunicorn_gevent_app"), {})
+        self.service = self.application.services[0]
+        self.assertDictEqual(self.service.ports, {"www": str(self.service.CUSTOM_PORTS_RANGE_START)})
+
+        self.application = Application(os.path.join(self.path, "simple_python_app"), {})
+        self.service = self.application.services[0]
+        self.assertDictEqual(self.service.ports, {})
+
     def test_generate_supervisor_include(self):
         self.application = Application(os.path.join(self.path, "simple_gunicorn_gevent_app"), {})
         self.service = self.application.services[0]
@@ -74,11 +83,11 @@ class TestService(ContainerTestCase):
         self.assertTrue(os.path.exists(supervisor_include))
         with open(supervisor_include) as fp:
             supervisor_include = fp.read()
-        self.assertEqual("""[program:api]
+        self.assertIn("""[program:api]
 command=/bin/sh -lc "exec gunicorn -k gevent -b 0.0.0.0:$PORT_WWW -w 2 wsgi:application"
 directory=/home/dotcloud/current
-stdout_logfile=/var/log/supervisor/api.log
-stderr_logfile=/var/log/supervisor/api_error.log
+stdout_logfile=/home/dotcloud/supervisor/api.log
+stderr_logfile=/home/dotcloud/supervisor/api_error.log
 
 """, supervisor_include)
 
@@ -89,16 +98,16 @@ stderr_logfile=/var/log/supervisor/api_error.log
         self.assertTrue(os.path.exists(supervisor_include))
         with open(supervisor_include) as fp:
             supervisor_include = fp.read()
-        self.assertEqual("""[program:db]
+        self.assertIn("""[program:db]
 command=/bin/sh -lc "exec ~/run"
 directory=/home/dotcloud
-stdout_logfile=/var/log/supervisor/db.log
-stderr_logfile=/var/log/supervisor/db_error.log
+stdout_logfile=/home/dotcloud/supervisor/db.log
+stderr_logfile=/home/dotcloud/supervisor/db_error.log
 
 """, supervisor_include)
 
     def test_generate_environment_files(self):
-        self.application = Application(os.path.join(self.path, "custom_app"), {"API_KEY": "42"})
+        self.application = Application(os.path.join(self.path, "simple_gunicorn_gevent_app"), {"API_KEY": "42"})
         self.service = self.application.services[0]
         env_json, env_yml, env_profile = self.service._generate_environment_files(self.tmpdir)
         with open(env_json) as fp_json, open(env_yml) as fp_yml, open(env_profile) as fp_profile:
@@ -114,6 +123,7 @@ stderr_logfile=/var/log/supervisor/db_error.log
             self.assertEqual(env.get("API_ENDPOINT"), self.service.environment["API_ENDPOINT"])
             self.assertEqual(env.get("DOTCLOUD_PROJECT"), self.application.name)
             self.assertEqual(env.get("DOTCLOUD_SERVICE_NAME"), self.service.name)
+            self.assertEqual(env.get("PORT_WWW"), str(self.service.CUSTOM_PORTS_RANGE_START))
 
     def test_generate_service_tarball(self):
         self.application = Application(os.path.join(self.path, "simple_gunicorn_gevent_app"), {})
