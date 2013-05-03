@@ -13,14 +13,22 @@ if [ `id -u` != 0 ] ; then
     die "$0 installs stuff in $install_dir and must be run as root"
 fi
 
+if ! type virtualenv >/dev/null ; then
+    die "$0 depends on python-virtualenv"
+fi
+
+if ! type python2.7 >/dev/null ; then
+    die "$0 depends on python2.7"
+fi
+
 [ -d $install_dir ] || mkdir -p $install_dir
 
 [ -d $env_dir ] || virtualenv --python=python2.7 $env_dir
 
 . $env_dir/bin/activate
 
-builder_sdist=`dirname $0`/udotcloud.builder.tar.gz
+sandbox_sdist=`dirname $0`/udotcloud.sandbox.tar.gz
 
-pip install $builder_sdist
+pip install $sandbox_sdist
 
-rm -f $builder_sdist $0
+rm -f $sandbox_sdist $0

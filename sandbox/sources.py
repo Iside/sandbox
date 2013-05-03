@@ -20,7 +20,7 @@ from .buildfile import load_build_file
 from .containers import ImageRevSpec, Image
 from .exceptions import UnkownImageError
 from .tarfile import Tarball
-from .version import __version__
+from ..builder import BUILDER_INSTALL_PATH
 
 class Application(object):
 
@@ -64,15 +64,13 @@ class Application(object):
             self._root
         )
         app_tarball.wait()
-        builder_sdist = os.path.join(app_build_dir, "udotcloud.builder.tar.gz")
+        sandbox_sdist = os.path.join(app_build_dir, "udotcloud.sandbox.tar.gz")
         shutil.copy(
             pkg_resources.resource_filename(
                 "udotcloud.sandbox",
-                "../builder/dist/udotcloud.builder-{0}.tar.gz".format(
-                    __version__
-                )
+                "../dist/udotcloud.sandbox.tar.gz"
             ),
-            builder_sdist
+            sandbox_sdist
         )
         bootstrap_script = os.path.join(app_build_dir, "bootstrap.sh")
         shutil.copy(
@@ -82,7 +80,7 @@ class Application(object):
             bootstrap_script
         )
 
-        return [app_tarball.dest, builder_sdist, bootstrap_script]
+        return [app_tarball.dest, sandbox_sdist, bootstrap_script]
 
     def build(self, base_image=None):
         if not self._buildable_services:
@@ -334,10 +332,8 @@ serverurl=unix:///home/dotcloud/supervisor/supervisor.sock
         container = container.result.instantiate(
             commit_as=self._result_revspec()
         )
-        # XXX: should be a constant in the builder package:
-        dotcloud_builder_path = "/var/lib/dotcloud/builder/bin/dotcloud-builder"
         with container.run(
-            [dotcloud_builder_path, self._extract_path], as_user="dotcloud"
+            [BUILDER_INSTALL_PATH, self._extract_path], as_user="dotcloud"
         ):
             logging.debug("Running builder in service {0}".format(self.name))
         logging.info("Build logs for {0}:\n{1}".format(
