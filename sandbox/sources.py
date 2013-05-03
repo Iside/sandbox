@@ -340,7 +340,7 @@ serverurl=unix:///home/dotcloud/supervisor/supervisor.sock
             [dotcloud_builder_path, self._extract_path], as_user="dotcloud"
         ):
             logging.debug("Running builder in service {0}".format(self.name))
-        logging.debug("Build logs for {0}:\n{1}".format(
+        logging.info("Build logs for {0}:\n{1}".format(
             self.name, container.logs
         ))
         self.result_image = container.result
