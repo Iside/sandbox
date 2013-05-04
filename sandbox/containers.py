@@ -11,7 +11,7 @@ import logging
 import re
 
 from .exceptions import UnkownImageError, DockerCommandError, DockerNotFoundError
-from .utils import bytes_to_human
+from ..utils import bytes_to_human
 
 class _CatchDockerError(object):
     def __enter__(self):

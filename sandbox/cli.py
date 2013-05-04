@@ -9,8 +9,8 @@ import sys
 
 from .containers import ImageRevSpec, Image
 from .exceptions import UnkownImageError
-from .debug import configure_logging, log_success
 from .sources import Application
+from ..utils.debug import configure_logging, log_success
 
 def parse_environment_variables(env_list):
     env_dict = {}

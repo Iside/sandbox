@@ -27,7 +27,8 @@ requirements = [
 package_dir = {
     "udotcloud": "udotcloud",
     "udotcloud.sandbox": "sandbox",
-    "udotcloud.builder": "builder"
+    "udotcloud.builder": "builder",
+    "udotcloud.utils": "utils"
 }
 
 sdist = "dist/udotcloud.sandbox.tar.gz"
@@ -71,7 +72,7 @@ setup(
     author="dotCloud Inc.",
     author_email="opensource@dotcloud.com",
     url="https://github.com/dotcloud/sandbox",
-    packages=["udotcloud", "udotcloud.sandbox", "udotcloud.builder"],
+    packages=package_dir.keys(),
     package_dir=package_dir,
     namespace_packages=["udotcloud"],
     package_data={"udotcloud.sandbox": [
