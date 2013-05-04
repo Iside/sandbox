@@ -101,7 +101,7 @@ class Container(object):
             if stdin is None:
                 with _CatchDockerError():
                     self._id = gevent.subprocess.check_output(
-                        ["docker", "run", "-d"] + as_user
+                        ["docker", "run", "-t", "-d"] + as_user
                         + [self.image.revision] + cmd
                     ).strip()
                 # docker wait prints the number of second we waited, ignore it:

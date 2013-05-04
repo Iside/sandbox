@@ -41,6 +41,7 @@ class ServiceBase(object):
         self._configure()
         self._install_requirements()
         self._hook_postbuild()
+        return True
 
 class PythonWorker(ServiceBase):
 
@@ -55,7 +56,7 @@ class PythonWorker(ServiceBase):
 
     def _configure(self):
         python_version = self._config.get("python_version", "v2.6")[1:]
-        logging.debug("Configuring {0} for Python {1}".format(
+        logging.info("Configuring {0} for Python {1}:".format(
             self._type, python_version
         ))
         python_version = "python" + python_version
@@ -69,7 +70,7 @@ class PythonWorker(ServiceBase):
 
     def _install_requirements(self):
         if os.path.exists(self._requirements):
-            logging.debug("Installating requirements from requirements.txt")
+            logging.info("Installating requirements from requirements.txt:")
             subprocess.check_call([
                 self._pip, "install",
                 "--download-cache={0}".format(self._pip_cache),

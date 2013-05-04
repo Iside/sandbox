@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import logging; logging.basicConfig(level="DEBUG")
+import colorama
+import logging
 import sys
 
-from udotcloud.builder import Builder
+from .builder import Builder
+from ..utils.debug import configure_logging
 
 def main():
+    colorama.init()
+
     parser = argparse.ArgumentParser(description=
 """Internal builder for udotcloud.sandbox
 
@@ -23,6 +27,8 @@ manually."""
     )
 
     args = parser.parse_args()
+
+    configure_logging("-->")
 
     try:
         builder = Builder(args.sources)

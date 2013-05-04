@@ -8,6 +8,7 @@ import os
 import subprocess
 
 from .services import get_service
+from ..utils.debug import log_success
 
 @contextlib.contextmanager
 def _ignore_eexist():
@@ -82,4 +83,7 @@ class Builder(object):
         service_builder = get_service(
             self._build_dir, self._current_dir, self._svc_definition
         )
-        service_builder.build()
+        if service_builder.build():
+            log_success("{0} build done".format(self._svc_definition['type']))
+            return True
+        return False

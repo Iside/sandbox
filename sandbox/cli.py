@@ -109,7 +109,7 @@ generated in the environment).
     else:
         env = {}
 
-    configure_logging(args.log_lvl)
+    configure_logging("==>", args.log_lvl)
 
     try:
         logging.debug("Loading {0}".format(args.application))

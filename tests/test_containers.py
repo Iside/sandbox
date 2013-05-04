@@ -33,7 +33,7 @@ class TestContainers(ContainerTestCase):
     def test_container_run_no_stdin(self):
         with self.container.run(["pwd"]):
             pass
-        self.assertEqual(self.container.logs, "/\n")
+        self.assertEqual(self.container.logs, "/\r\n")
         self.assertEqual(self.container.result.revspec, self.result_revspec)
 
     def test_container_run_stdin(self):
