@@ -29,6 +29,10 @@ fi
 
 sandbox_sdist=`dirname $0`/udotcloud.sandbox.tar.gz
 
-pip install $sandbox_sdist
+# As a side effect of #2 this now installs the dependencies of the sandbox
+# tool which include gevent which takes a long time to compile. So, let's
+# install the dependencies manually here; hopefully they wan't change often.
+pip install --no-deps $sandbox_sdist
+pip install 'colorama>=0.2.5,<0.3'
 
 rm -f $sandbox_sdist $0

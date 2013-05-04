@@ -80,10 +80,11 @@ setup(
         os.path.join("..", sdist)
     ]},
     include_package_data=True,
-    entry_points={"console_scripts": [
-        "sandbox = udotcloud.sandbox.cli:main",
-        "dotcloud-builder = udotcloud.builder.cli:main",
-    ]},
+    entry_points={"console_scripts": ["sandbox = udotcloud.sandbox.cli:main"]},
+    # We can't use an entry point for dotcloud-builder, because setuptools will
+    # check for sandbox's dependencies which we don't want to install inside
+    # containers (see builder/bootstrap.sh):
+    scripts=["builder/dotcloud-builder"],
     install_requires=requirements,
     dependency_links=[
         "https://github.com/surfly/gevent/tarball/master#egg=gevent-1.0rc2"
