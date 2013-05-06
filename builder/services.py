@@ -12,6 +12,7 @@ class ServiceBase(object):
         self._build_dir = build_dir
         self._svc_dir = svc_dir
         self._type = definition["type"]
+        self._name = definition["name"]
         self._config = definition.get("config", {})
         self._extra_requirements = definition.get("requirements", [])
         self._prebuild_script = definition.get("prebuild")
@@ -36,7 +37,9 @@ class ServiceBase(object):
             self._run_hook(self._postbuild_script)
 
     def build(self):
-        logging.debug("Starting a {0} build inside Docker".format(self._type))
+        logging.debug("Building service {0} ({1}) inside Docker".format(
+            self._name, self._type
+        ))
         self._hook_prebuild()
         self._configure()
         self._install_requirements()
@@ -56,8 +59,8 @@ class PythonWorker(ServiceBase):
 
     def _configure(self):
         python_version = self._config.get("python_version", "v2.6")[1:]
-        logging.info("Configuring {0} for Python {1}:".format(
-            self._type, python_version
+        logging.info("Configuring {0} ({1}) for Python {2}:".format(
+            self._name, self._type, python_version
         ))
         python_version = "python" + python_version
         subprocess.check_call([
@@ -77,7 +80,7 @@ class PythonWorker(ServiceBase):
                 "-r", self._requirements
             ])
         if self._extra_requirements:
-            logging.debug(
+            logging.info(
                 "Installating extra requirements from dotcloud.yml: "
                 "{0}".format(", ".join(self._extra_requirements))
             )

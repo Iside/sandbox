@@ -270,7 +270,7 @@ serverurl=unix:///home/dotcloud/supervisor/supervisor.sock
     def _dump_service_definition(self, svc_build_dir):
         definition = os.path.join(svc_build_dir, "definition.json")
         with open(definition, "w") as fp:
-            json.dump(self._definition, fp, indent=4)
+            json.dump(dict(self._definition, name=self.name), fp, indent=4)
         return definition
 
     def _generate_service_tarball(self, app_build_dir, app_files):

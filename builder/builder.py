@@ -84,6 +84,8 @@ class Builder(object):
             self._build_dir, self._current_dir, self._svc_definition
         )
         if service_builder.build():
-            log_success("{0} build done".format(self._svc_definition['type']))
+            log_success("{0} build done for service {1}".format(
+                self._svc_definition['type'], self._svc_definition['name']
+            ))
             return True
         return False
