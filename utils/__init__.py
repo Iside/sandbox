@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import signal
+
 def bytes_to_human(value):
     bytes_to_human = (
         (1024**4, "T"),
@@ -13,3 +15,9 @@ def bytes_to_human(value):
             value /= factor
             break
     return str(int(value)) + suffix
+
+def strsignal(signum):
+    return {
+        num: name
+        for name, num in signal.__dict__.iteritems() if name.startswith("SIG")
+    }.get(signum)
