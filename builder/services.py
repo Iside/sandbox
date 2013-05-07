@@ -4,7 +4,7 @@ import logging
 import os
 import subprocess
 
-# TODO: Move the environment and supervisor files generation here.
+from ..utils import strsignal
 
 class ServiceBase(object):
 
@@ -40,10 +40,24 @@ class ServiceBase(object):
         logging.debug("Building service {0} ({1}) inside Docker".format(
             self._name, self._type
         ))
-        self._hook_prebuild()
-        self._configure()
-        self._install_requirements()
-        self._hook_postbuild()
+        try:
+            self._hook_prebuild()
+            self._configure()
+            self._install_requirements()
+            self._hook_postbuild()
+        except subprocess.CalledProcessError as ex:
+            msg = "Can't build service {0} ({1}): the command " \
+                "`{2}` ".format(self._name, self._type, " ".join(ex.cmd))
+            if ex.returncode < 0:
+                signum = -ex.returncode
+                logging.error(msg + "exited on signal {0} ({1})".format(
+                    signum, strsignal(signum)
+                ))
+            elif ex.returncode == 127:
+                logging.error(msg + "was not found")
+            else:
+                logging.error(msg + "returned {0}".format(ex.returncode))
+            return False
         return True
 
 class PythonWorker(ServiceBase):
