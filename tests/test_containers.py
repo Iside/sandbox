@@ -50,6 +50,11 @@ class TestContainers(ContainerTestCase):
             pass
         self.assertIn("Permission denied", self.container.logs)
 
+    def test_container_run_env(self):
+        with self.container.run(["/usr/bin/env"], env={"TOTO": "POUET"}):
+            pass
+        self.assertIn("TOTO=POUET", self.container.logs)
+
     def test_container_as_user_stdin(self):
         with self.container.run(["/bin/ls", "/root"], as_user="nobody", stdin=self.container.PIPE) as ls:
             ls.stdin.close()

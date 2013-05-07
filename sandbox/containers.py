@@ -49,6 +49,19 @@ class Container(object):
         self.commit_as = commit_as
         self._id = None
 
+    @staticmethod
+    def _generate_option_list(option, args):
+        """_generate_option_list("-p", [1, 2…]) → ["-p", 1, "-p", 2…]"""
+        return list(
+            itertools.chain.from_iterable(itertools.product([option], args))
+        )
+
+    @classmethod
+    def _generate_env_option_list(cls, env):
+        return cls._generate_option_list(
+            "-e", ["{0}={1}".format(k, v) for k, v in env.iteritems()]
+        )
+
     def install_system_packages(self, packages):
         # XXX: pay attention to the tricks done in snapshots/worker.py
         pass
@@ -57,7 +70,7 @@ class Container(object):
     # fact that it's really an authoring tool, and reduce the confusion with
     # run_stream_logs.
     @contextlib.contextmanager
-    def run(self, cmd, as_user=None, stdin=None, stdout=None, stderr=None):
+    def run(self, cmd, as_user=None, env={}, stdin=None, stdout=None, stderr=None):
         """Run the specified command in a new container.
 
         This is a context manager that returns a :class:`subprocess.Popen`
@@ -91,6 +104,7 @@ class Container(object):
         ))
 
         as_user = ["-u", as_user] if as_user else []
+        env = self._generate_env_option_list(env)
 
         try:
             # If stdin is None, start the container in detached mode, this will
@@ -102,7 +116,7 @@ class Container(object):
                 with _CatchDockerError():
                     self._id = gevent.subprocess.check_output(
                         ["docker", "run", "-t", "-d"] + as_user
-                        + [self.image.revision] + cmd
+                        + env + [self.image.revision] + cmd
                     ).strip()
                 # docker wait prints the number of second we waited, ignore it:
                 with open("/dev/null", "w") as ignore:
@@ -112,9 +126,8 @@ class Container(object):
             else:
                 docker = gevent.subprocess.Popen(
                     ["docker", "run", "-i", "-a", "stdin"]
-                    + as_user + [self.image.revision] + cmd,
-                    stdin=stdin,
-                    stdout=self.PIPE
+                    + as_user + env + [self.image.revision] + cmd,
+                    stdin=stdin, stdout=self.PIPE
                 )
                 # readline instead of read is important here, the object behind
                 # docker.stdout is actually a socket._fileobject (yes, the real
@@ -220,14 +233,8 @@ class Container(object):
         ))
 
         as_user = ["-u", as_user] if as_user else []
-        ports = [str(p) for p in ports]
-        ports = list(
-            itertools.chain.from_iterable(itertools.product(["-p"], ports))
-        )
-        env = ["{0}={1}".format(k, v) for k, v in env.iteritems()]
-        env = list(
-            itertools.chain.from_iterable(itertools.product(["-e"], env))
-        )
+        ports = self._generate_option_list("-p", [str(p) for p in ports])
+        env = self._generate_env_option_list(env)
         with _CatchDockerError():
             self._id = gevent.subprocess.check_output(
                 ["docker", "run", "-d"] + as_user + env
