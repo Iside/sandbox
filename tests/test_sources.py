@@ -76,36 +76,6 @@ class TestService(ContainerTestCase):
         self.service = self.application.services[0]
         self.assertDictEqual(self.service.ports, {})
 
-    def test_generate_supervisor_include(self):
-        self.application = Application(os.path.join(self.path, "simple_gunicorn_gevent_app"), {})
-        self.service = self.application.services[0]
-        supervisor_include = self.service._generate_supervisor_include(self.tmpdir)
-        self.assertTrue(os.path.exists(supervisor_include))
-        with open(supervisor_include) as fp:
-            supervisor_include = fp.read()
-        self.assertIn("""[program:api]
-command=/bin/sh -lc "exec gunicorn -k gevent -b 0.0.0.0:$PORT_WWW -w 2 wsgi:application"
-directory=/home/dotcloud/current
-stdout_logfile=/home/dotcloud/supervisor/api.log
-stderr_logfile=/home/dotcloud/supervisor/api_error.log
-
-""", supervisor_include)
-
-    def test_generate_supervisor_include_custom_app(self):
-        self.application = Application(os.path.join(self.path, "custom_app"), {})
-        self.service = self.application.services[0]
-        supervisor_include = self.service._generate_supervisor_include(self.tmpdir)
-        self.assertTrue(os.path.exists(supervisor_include))
-        with open(supervisor_include) as fp:
-            supervisor_include = fp.read()
-        self.assertIn("""[program:db]
-command=/bin/sh -lc "exec ~/run"
-directory=/home/dotcloud
-stdout_logfile=/home/dotcloud/supervisor/db.log
-stderr_logfile=/home/dotcloud/supervisor/db_error.log
-
-""", supervisor_include)
-
     def test_generate_environment_files(self):
         self.application = Application(os.path.join(self.path, "simple_gunicorn_gevent_app"), {"API_KEY": "42"})
         self.service = self.application.services[0]

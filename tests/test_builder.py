@@ -61,7 +61,6 @@ class TestBuilderUnpack(TestBuilderCase):
         self.assertTrue(os.path.exists(os.path.join(self.current_dir, "dotcloud.yml")))
         self.assertFalse(os.path.exists(os.path.join(self.installdir, "application.tar")))
 
-        self.assertTrue(os.path.exists(os.path.join(self.installdir, "supervisor.conf")))
         self.assertTrue(os.path.exists(os.path.join(self.installdir, "environment.json")))
         self.assertTrue(os.path.exists(os.path.join(self.installdir, "environment.yml")))
         self.assertFalse(os.path.exists(os.path.join(self.installdir, "service.tar")))
@@ -89,6 +88,16 @@ class TestBuilderPythonWorker(TestBuilderCase):
         dotcloud_profile = open(os.path.join(self.installdir, "dotcloud_profile")).read()
         self.assertIn("DOTCLOUD_SERVICE_ID", dotcloud_profile)
         self.assertEqual(dotcloud_profile.count("env/bin/activate"), 1)
+
+        self.assertTrue(os.path.exists(os.path.join(self.installdir, "supervisor.conf")))
+        supervisor_configuration = open(os.path.join(self.installdir, "supervisor.conf")).read()
+        self.assertIn("""[program:api]
+command=/bin/sh -lc "exec gunicorn -k gevent -b 0.0.0.0:$PORT_WWW -w 2 wsgi:application"
+directory={install_dir}/current
+stdout_logfile={install_dir}/supervisor/api.log
+stderr_logfile={install_dir}/supervisor/api_error.log
+
+""".format(install_dir=self.installdir), supervisor_configuration)
 
         virtualenv_bin = os.path.join(self.installdir, "env", "bin")
         installed_packages = gevent.subprocess.Popen(

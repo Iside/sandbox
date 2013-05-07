@@ -197,51 +197,6 @@ class Service(object):
     def _build_revspec(self):
         return ImageRevSpec(None, None, None, None) # keep build rev anonymous
 
-    def _generate_supervisor_include(self, svc_build_dir):
-        PROGRAM_TEMPLATE = """[program:{name}]
-command=/bin/sh -lc "exec {command}"
-directory={directory}
-stdout_logfile=/home/dotcloud/supervisor/{name}.log
-stderr_logfile=/home/dotcloud/supervisor/{name}_error.log
-
-"""
-        # The configuration itself will be in ~dotcloud but put all the other
-        # supervisor related files in a subdir:
-        os.mkdir(os.path.join(svc_build_dir, "supervisor"))
-        supervisor_include = os.path.join(svc_build_dir, "supervisor.conf")
-        exec_dir = "/home/dotcloud"
-        if self.type != "custom":
-            exec_dir = os.path.join(exec_dir, "current")
-        with open(supervisor_include, 'w') as fp:
-            fp.write("""[supervisord]
-logfile=/home/dotcloud/supervisor/supervisord.log
-pidfile=/home/dotcloud/supervisor/supervisord.pid
-
-[unix_http_server]
-file=/home/dotcloud/supervisor/supervisor.sock
-
-[rpcinterface:supervisor]
-supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
-
-[supervisorctl]
-serverurl=unix:///home/dotcloud/supervisor/supervisor.sock
-
-""")
-            if self.processes:
-                for name, command in self.processes.iteritems():
-                    fp.write(PROGRAM_TEMPLATE.format(
-                        name=name, command=command, directory=exec_dir
-                    ))
-            elif self.process:
-                fp.write(PROGRAM_TEMPLATE.format(
-                    name=self.name, command=self.process, directory=exec_dir
-                ))
-            elif self.type == "custom":
-                fp.write(PROGRAM_TEMPLATE.format(
-                    name=self.name, command="~/run", directory=exec_dir
-                ))
-        return supervisor_include
-
     def _generate_environment_files(self, svc_build_dir):
         # environment.{json,yml} + .dotcloud_profile
         env_json = os.path.join(svc_build_dir, "environment.json")
@@ -279,7 +234,6 @@ serverurl=unix:///home/dotcloud/supervisor/supervisor.sock
         svc_tarball_name = "service.tar"
         app_files_names = [os.path.basename(path) for path in app_files]
 
-        self._generate_supervisor_include(svc_build_dir)
         self._generate_environment_files(svc_build_dir)
         self._dump_service_definition(svc_build_dir)
         svc_tarball = Tarball.create_from_files(
