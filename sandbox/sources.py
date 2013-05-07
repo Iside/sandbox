@@ -286,8 +286,11 @@ class Service(object):
         container = container.result.instantiate(
             commit_as=self._result_revspec()
         )
+        # Since we don't actually go through login(1) we need to set HOME
+        # otherwise, .profile won't be executed by login shells:
         with container.run(
-            [BUILDER_INSTALL_PATH, self._extract_path], as_user="dotcloud"
+            [BUILDER_INSTALL_PATH, self._extract_path],
+            env={"HOME": "/home/dotcloud"}, as_user="dotcloud"
         ):
             logging.debug("Running builder in service {0}".format(self.name))
         logging.info("Build logs for {0}:\n{1}".format(
@@ -305,9 +308,6 @@ class Service(object):
             ports.append(80)
         supervisor_conf = os.path.join(self._extract_path, "supervisor.conf")
         logging.info("Starting Supervisor in {0}".format(image))
-        # Since we don't actually go through login(1) we do need to set HOME
-        # otherwise, .profile won't be executed event though we start the
-        # daemon defined in supervisor via sh -l:
         with container.run_stream_logs(
             ["supervisord", "-n", "-c", supervisor_conf],
             env={"HOME": "/home/dotcloud"},
