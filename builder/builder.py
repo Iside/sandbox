@@ -56,15 +56,6 @@ class Builder(object):
         with open(definition, "r") as fp:
             self._svc_definition = json.load(fp)
         os.unlink(definition)
-        self._approot_dir = os.path.join(
-            self._code_dir, self._svc_definition['approot']
-        )
-
-        logging.debug("Symlinking current from {0}".format(
-            self._approot_dir, self._current_dir
-        ))
-        with _ignore_eexist():
-            os.symlink(self._approot_dir, self._current_dir)
 
         return True
 

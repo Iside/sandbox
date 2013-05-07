@@ -49,6 +49,15 @@ stderr_logfile={supervisor_dir}/{name}_error.log
         if self._postbuild_script:
             self._run_hook(self._postbuild_script)
 
+    def _symlink_current(self):
+        approot_dir = os.path.join(
+            self._build_dir, "code", self._definition['approot']
+        )
+        # XXX
+        logging.debug("Symlinking {1} from {0}".format(approot_dir, self._svc_dir))
+        with ignore_eexist():
+            os.symlink(approot_dir, self._svc_dir)
+
     def _generate_supervisor_configuration(self):
         # The configuration itself will be in ~dotcloud but put all the other
         # supervisor related files in a subdir:
@@ -89,6 +98,7 @@ serverurl=unix://{supervisor_dir}/supervisor.sock
             self._name, self._type
         ))
         try:
+            self._symlink_current()
             self._hook_prebuild()
             self._generate_supervisor_configuration()
             self._generate_processes()

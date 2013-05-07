@@ -56,9 +56,7 @@ class TestBuilderUnpack(TestBuilderCase):
         self.builder._unpack_sources()
 
         self.assertTrue(os.path.isdir(self.code_dir))
-        self.assertTrue(os.path.islink(self.current_dir))
         self.assertTrue(os.path.exists(os.path.join(self.code_dir, "dotcloud.yml")))
-        self.assertTrue(os.path.exists(os.path.join(self.current_dir, "dotcloud.yml")))
         self.assertFalse(os.path.exists(os.path.join(self.installdir, "application.tar")))
 
         self.assertTrue(os.path.exists(os.path.join(self.installdir, "environment.json")))
@@ -79,6 +77,9 @@ class TestBuilderPythonWorker(TestBuilderCase):
             )
 
         self.builder.build()
+
+        self.assertTrue(os.path.islink(self.current_dir))
+        self.assertTrue(os.path.exists(os.path.join(self.current_dir, "dotcloud.yml")))
 
         self.assertTrue(os.path.exists(os.path.join(self.current_dir, "prebuild")))
         self.assertTrue(os.path.exists(os.path.join(self.current_dir, "postbuild")))
