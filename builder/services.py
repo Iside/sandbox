@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import copy
 import logging
 import os
+import shutil
 import subprocess
 
 from ..utils import ignore_eexist, strsignal
@@ -30,6 +32,7 @@ stderr_logfile={supervisor_dir}/{name}_error.log
         self._postbuild_script = definition.get("postbuild")
         self._supervisor_dir = os.path.join(self._build_dir, "supervisor")
         self._supervisor_include = os.path.join(self._build_dir, "supervisor.conf")
+        self._profile = os.path.join(self._build_dir, "dotcloud_profile")
 
     def _configure(self): pass
     def _install_requirements(self): pass
@@ -127,7 +130,6 @@ class PythonWorker(ServiceBase):
         self._virtualenv_dir = os.path.join(self._build_dir, "env")
         self._pip = os.path.join(self._virtualenv_dir, "bin", "pip")
         self._pip_cache = os.path.join(self._build_dir, ".pip-cache")
-        self._profile = os.path.join(self._build_dir, "dotcloud_profile")
         self._requirements = os.path.join(self._svc_dir, "requirements.txt")
         self._svc_setup_py = os.path.join(self._svc_dir, "setup.py")
 
@@ -175,9 +177,65 @@ class Python(PythonWorker):
         PythonWorker._configure(self)
         # TODO: setup the uwsgi configuration for supervisor
 
+class Custom(ServiceBase):
+
+    SUPERVISOR_PROCESS_TPL = """[program:{name}]
+command=/bin/bash -lc "[ -f ~/profile ] && . ~/profile; exec {command}"
+directory={exec_dir}
+stdout_logfile={supervisor_dir}/{name}.log
+stderr_logfile={supervisor_dir}/{name}_error.log
+
+"""
+
+    def __init__(self, *args, **kwargs):
+        ServiceBase.__init__(self, *args, **kwargs)
+        self._svc_dir = self._build_dir
+        self._supervisor_dir = "/home/dotcloud/supervisor"
+        self._profile = os.path.join("/home/dotcloud/dotcloud_profile")
+        self._buildscript = None
+        if "buildscript" in self._definition:
+            self._buildscript = os.path.join(
+                self._build_dir, "code", self._definition['buildscript']
+            )
+
+    def _symlink_current(self): pass
+
+    def _generate_processes(self):
+        if self._processes or self._process:
+            ServiceBase._generate_processes(self)
+            return
+        with open(self._supervisor_include, "a") as fp:
+            fp.write(self.SUPERVISOR_PROCESS_TPL.format(
+                name=self._name, command="~/run",
+                exec_dir="/home/dotcloud", supervisor_dir=self._supervisor_dir
+            ))
+
+    def _configure(self):
+        if not self._buildscript:
+            return
+        extra_env = copy.copy(os.environ)
+        for k, v in self._definition.iteritems():
+            k = k.upper()
+            if isinstance(v, dict):
+                for sk, sv in v.items():
+                    extra_env['_'.join(('SERVICE', k, sk.upper()))] = str(sv)
+            else:
+                extra_env['SERVICE_' + k] = str(v)
+        logging.info("Calling buildscript {0} for service {1} ({2})".format(
+            self._definition['buildscript'], self._name, self._type
+        ))
+        subprocess.check_call(
+            ["/bin/sh", "-lc", "exec {0}".format(self._buildscript)],
+            cwd=os.path.join(self._build_dir, "code"), env=extra_env,
+        )
+        shutil.move(
+            os.path.join(self._build_dir, "dotcloud_profile"), self._profile
+        )
+
 def get_service(build_dir, svc_dir, svc_definition):
     service_class = {
-        "python-worker": PythonWorker
+        "python-worker": PythonWorker,
+        "custom": Custom
     }.get(svc_definition['type'])
     if not service_class:
         raise ValueError("No builder defined for {0} services".format(

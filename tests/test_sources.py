@@ -56,6 +56,21 @@ class TestApplication(unittest.TestCase):
                 pass
             self.assertIn("1000", container.logs)
 
+    def test_custom_application_build(self):
+        application = Application(os.path.join(self.path, "custom_app"), {})
+        images = application.build(base_image=Image(ImageRevSpec.parse("lopter/sandbox-base:latest")))
+        self.assertIsInstance(images, dict)
+        result = images.get("db")
+        self.assertIsNotNone(result)
+        container = result.instantiate(commit_as=ImageRevSpec.parse(
+            ContainerTestCase.random_image_name()
+        ))
+        with _destroy_result(container):
+            with container.run(["ls", "/home/dotcloud/"]):
+                pass
+            self.assertIn("dotcloud.yml", container.logs)
+            self.assertIn("buildscript-stamp", container.logs)
+
 class TestService(ContainerTestCase):
 
     def setUp(self):

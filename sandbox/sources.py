@@ -10,6 +10,7 @@ import logging
 import os
 import pkg_resources
 import pprint
+import re
 import shutil
 import socket
 import tempfile
@@ -144,7 +145,6 @@ class Service(object):
 
     def __init__(self, application, name, definition):
         self._application = application
-        self._extract_path = "/home/dotcloud"
         self.name = name
         self.result_image = None
         for k, v in definition.iteritems():
@@ -158,6 +158,9 @@ class Service(object):
         # Let's keep it as real dict too, so we can easily dump it:
         self._definition = definition
         self._definition['environment'] = self.environment
+        self._extract_path = "/home/dotcloud"
+        if self.type == "custom":
+            self._extract_path = "/tmp"
         # TODO: actually build a list of services which are buildable or not,
         # once we have merged "builder" back in the same application that
         # should be easy since we will have access to builder.services.
@@ -171,11 +174,13 @@ class Service(object):
     # doesn't support udp ports anyway).
     def _allocate_custom_ports(self):
         http_ports_count = self.ports.values().count("http")
-        if ("worker" in self.type and http_ports_count > 1) \
-            or ("worker" not in self.type and http_ports_count):
+        if (not re.match(r"^(custom|.+worker)$", self.type) and http_ports_count) \
+            or ("worker" in self.type and http_ports_count > 1):
             logging.warning(
-                "You cannot define more than one http port per service!"
+                "A http port was already defined for service "
+                "{0} ({1})".format(self.name, self.type)
             )
+
         ports = {}
         port_number = self.CUSTOM_PORTS_RANGE_START
         for name, proto in self.ports.iteritems():
@@ -220,7 +225,7 @@ class Service(object):
             fp.writelines([
                 "export {0}={1}\n".format(k, v) for k, v in env.iteritems()
             ])
-        return env_json, env_yml, env_profile
+        return [env_json, env_yml, env_profile]
 
     def _dump_service_definition(self, svc_build_dir):
         definition = os.path.join(svc_build_dir, "definition.json")
@@ -234,10 +239,10 @@ class Service(object):
         svc_tarball_name = "service.tar"
         app_files_names = [os.path.basename(path) for path in app_files]
 
-        self._generate_environment_files(svc_build_dir)
-        self._dump_service_definition(svc_build_dir)
+        svc_files = self._generate_environment_files(svc_build_dir)
+        svc_files.append(self._dump_service_definition(svc_build_dir))
         svc_tarball = Tarball.create_from_files(
-            ".",
+            [os.path.basename(path) for path in svc_files],
             os.path.join(svc_build_dir, svc_tarball_name),
             svc_build_dir
         )

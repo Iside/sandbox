@@ -11,6 +11,7 @@ from distutils.spawn import find_executable
 
 from udotcloud.sandbox import Application
 from udotcloud.builder import Builder
+from udotcloud.builder.services import get_service
 
 class TestBuilderCase(unittest.TestCase):
 
@@ -113,3 +114,40 @@ stderr_logfile={install_dir}/supervisor/api_error.log
         python_version = python_version.communicate()[1]
         self.assertRegexpMatches(python_version, "^Python 2.7")
         self.assertIn("gunicorn", installed_packages)
+
+class TestBuilderCustom(TestBuilderCase):
+
+    sources_path = "custom_app"
+    service_name = "db"
+
+    def test_builder_build(self):
+        self.builder._unpack_sources()
+        custom_svc_builder = get_service(
+            self.builder._build_dir,
+            self.builder._current_dir,
+            self.builder._svc_definition
+        )
+
+        self.assertEqual(custom_svc_builder._supervisor_dir, "/home/dotcloud/supervisor")
+        # Reset them to our test directory (otherwise the test suite will try
+        # to write in ~dotcloud on your computer).
+        custom_svc_builder._supervisor_dir = os.path.join(custom_svc_builder._build_dir, "supervisor")
+        custom_svc_builder._profile = os.path.join(custom_svc_builder._build_dir, "dotcloud_profile")
+
+        custom_svc_builder.build()
+
+        self.assertFalse(os.path.exists(self.current_dir))
+
+        self.assertTrue(os.path.exists(os.path.join(self.code_dir, "buildscript-stamp")))
+
+        self.assertTrue(os.path.exists(os.path.join(self.installdir, "supervisor.conf")))
+        supervisor_configuration = open(os.path.join(self.installdir, "supervisor.conf")).read()
+        print supervisor_configuration
+        print supervisor_configuration
+        self.assertIn("""[program:db]
+command=/bin/bash -lc "[ -f ~/profile ] && . ~/profile; exec ~/run"
+directory=/home/dotcloud
+stdout_logfile={install_dir}/supervisor/db.log
+stderr_logfile={install_dir}/supervisor/db_error.log
+
+""".format(install_dir=self.installdir), supervisor_configuration)
