@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import contextlib
+import errno
 import signal
 
 def bytes_to_human(value):
@@ -15,6 +17,14 @@ def bytes_to_human(value):
             value /= factor
             break
     return str(int(value)) + suffix
+
+@contextlib.contextmanager
+def ignore_eexist():
+    try:
+        yield
+    except OSError as ex:
+        if ex.errno != errno.EEXIST:
+            raise
 
 def strsignal(signum):
     return {

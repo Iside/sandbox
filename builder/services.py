@@ -4,7 +4,7 @@ import logging
 import os
 import subprocess
 
-from ..utils import strsignal
+from ..utils import ignore_eexist, strsignal
 
 class ServiceBase(object):
 

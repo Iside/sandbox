@@ -1,22 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import contextlib
-import errno
 import json
 import logging
 import os
 import subprocess
 
 from .services import get_service
+from ..utils import ignore_eexist
 from ..utils.debug import log_success
-
-@contextlib.contextmanager
-def _ignore_eexist():
-    try:
-        yield
-    except OSError as ex:
-        if ex.errno != errno.EEXIST:
-            raise
 
 class Builder(object):
 
@@ -29,7 +20,7 @@ class Builder(object):
 
     def _unpack_sources(self):
         logging.debug("Extracting application.tar and service.tar")
-        with _ignore_eexist():
+        with ignore_eexist():
             os.mkdir(self._code_dir)
         untar_app = subprocess.Popen([
             "tar", "--recursive-unlink",
