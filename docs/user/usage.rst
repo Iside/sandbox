@@ -13,11 +13,6 @@ Ringtail).
 
 .. note::
 
-   This image is currently broken once you pulled it, run: ``chmod 755
-   /var/lib/docker/graph/*/layer``. This will be fixed soon (see `#19`_).
-
-.. note::
-
    This image only supports the python-worker service for now, but new images
    will be added soon.
 
@@ -29,7 +24,6 @@ Ringtail).
    `#12`_).
 
 .. _lopter/sandbox-base: https://index.docker.io/u/lopter/sandbox-base/
-.. _#19: https://github.com/dotcloud/sandbox/issues/19
 .. _#12: https://github.com/dotcloud/sandbox/issues/12
 
 Then simply start the build::
