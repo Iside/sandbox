@@ -16,7 +16,7 @@ and:
 
 Setup a sane sources.list::
 
-    cat > sources.list << EOF
+    cat > /etc/apt/sources.list << EOF
     deb http://archive.ubuntu.com/ubuntu raring main universe multiverse restricted
     deb-src http://archive.ubuntu.com/ubuntu raring main universe multiverse restricted
     deb http://security.ubuntu.com/ubuntu raring-security main universe multiverse restricted
@@ -35,6 +35,7 @@ Prevent daemons from being started on installation or upgrades::
 
     exit 101
     EOF
+    chmod +x /usr/sbin/policy-rc.d
 
 Prevent APT from installing unwanted packages::
 
@@ -61,9 +62,18 @@ Clean up APT related files::
     apt-get clean
     rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
 
-Finally, add a dotcloud user::
+Add a dotcloud user::
 
     adduser --disabled-password dotcloud
+
+And finally, hook ``dotcloud_profile`` in ``.profile``::
+
+    cat << 'EOF' >> ~dotcloud/.profile
+
+    if [ -f "$HOME/dotcloud_profile" ]; then
+        . "$HOME/dotcloud_profile"
+    fi
+    EOF
 
 .. _lopter/sandbox-base: https://index.docker.io/u/lopter/sandbox-base/
 
