@@ -1,0 +1,3 @@
+docs:
+    type: static
+    approot: _build/html
