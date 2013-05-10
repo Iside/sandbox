@@ -89,6 +89,9 @@ supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 [supervisorctl]
 serverurl=unix://{supervisor_dir}/supervisor.sock
 
+[include]
+files=/home/dotcloud/current/supervisord.conf
+
 """.format(supervisor_dir=self._supervisor_dir))
 
     def _generate_processes(self):

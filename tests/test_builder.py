@@ -100,6 +100,7 @@ stdout_logfile={install_dir}/supervisor/api.log
 stderr_logfile={install_dir}/supervisor/api_error.log
 
 """.format(install_dir=self.installdir), supervisor_configuration)
+        self.assertIn("/home/dotcloud/current/supervisord.conf", supervisor_configuration)
 
         virtualenv_bin = os.path.join(self.installdir, "env", "bin")
         installed_packages = gevent.subprocess.Popen(
