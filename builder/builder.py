@@ -1,5 +1,13 @@
 # -*- coding: utf-8 -*-
 
+"""
+builder.builder
+~~~~~~~~~~~~~~~
+
+This module implements :class:`Builder` which is the counter part of
+:class:`sandbox.Application <udotcloud.sandbox.sources.Application>`.
+"""
+
 import json
 import logging
 import os
@@ -10,6 +18,11 @@ from ..utils import ignore_eexist
 from ..utils.debug import log_success
 
 class Builder(object):
+    """Build a service in Docker, from the tarball uploaded by `Sandbox`_.
+
+    :param build_dir: path to the directory where the “application.tar” and
+                      “service.tar” tarball can be found.
+    """
 
     def __init__(self, build_dir):
         self._build_dir = build_dir
@@ -60,6 +73,12 @@ class Builder(object):
         return True
 
     def build(self):
+        """Unpack the sources and start the build.
+
+        The build is started using the right service class from
+        :mod:`builder.services <udotcloud.builder.services>`.
+        """
+
         if not self._unpack_sources():
             return False
         service_builder = get_service(

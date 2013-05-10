@@ -1,5 +1,14 @@
 # -*- coding: utf-8 -*-
 
+"""
+builder.services
+~~~~~~~~~~~~~~~~
+
+This module defines one class per service type. Each class knows how to build a
+single type service. Use :func:`get_service` to get the right “builder” class
+from a service type.
+"""
+
 import copy
 import logging
 import os
@@ -233,6 +242,16 @@ stderr_logfile={supervisor_dir}/{name}_error.log
         )
 
 def get_service(build_dir, svc_dir, svc_definition):
+    """Return the right “builder” class for the given service.
+
+    :param build_dir: directory where the source code has been untared.
+    :param svc_dir: directory where the code for the current service is
+                    (usually ~/current which points to build_dir + approot).
+    :param svc_definition: the definition of the current service (the
+                           dictionnary for the current service from
+                           dotcloud.yml).
+    """
+
     service_class = {
         "python-worker": PythonWorker,
         "custom": Custom

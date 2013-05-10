@@ -1,5 +1,18 @@
 # -*- coding: utf-8 -*-
 
+"""
+sandbox.containers
+~~~~~~~~~~~~~~~~~~
+
+This module implements a Python binding for Docker.
+
+Docker functionnalities are exposed through three different classes:
+
+- :class:`ImageRevSpec`: used to instantiate images;
+- :class:`Image`: used to instantiate containers;
+- :class:`Container`: used to run and commit new images.
+"""
+
 import collections
 import contextlib
 import copy
@@ -27,24 +40,24 @@ class Container(object):
     """Containers are transitions between two images.
     
     :param revpsec: the :class:`ImageRevSpec` of the image to use.
-    :param commit_as: When :method:`run` is called, commit the resulting image
-                      as this given :class:`ImageRevSpec`.
-    :attr image: the image that will be used to start the container.
-    :attr result: the revspec of the image commited when run finishes.
-    :attr logs: the logs from the container when run finishes.
+    :param commit_as: when :meth:`Container.run` is called, commit the resulting image
+                      as this given :class:`ImageRevSpec` (otherwise the
+                      revspec of the image used to launch the container is
+                      re-used).
 
-    .. note::
-
-    :attr:`logs` and attr:`result` are only available once the :method:`run`
-    has successfully finished.
+    .. note:: :attr:`logs` and :attr:`result` are only available once
+              :meth:`run` has successfully finished.
     """
 
     PIPE = gevent.subprocess.PIPE
     STDOUT = gevent.subprocess.STDOUT
 
     def __init__(self, image, commit_as=None):
+        #: The image that will be used to start the container.
         self.image = image
+        #: The revspec of the image commited when run finishes.
         self.result = None
+        #: The logs from the container when run finishes.
         self.logs = None
         self.commit_as = commit_as
         self._id = None
@@ -90,13 +103,13 @@ class Container(object):
 
         .. warning::
 
-        stdout and stderr currently don't work due to limitations on Docker:
-        you can't get the id of container, in a race-condition free way, with
-        stdout and stderr enabled on docker run. A workaround would be to start
-        a shell in detached mode and then execute the command from docker
-        attach, but docker attach doesn't exit correctly when the process exits
-        (it hangs on stdin until you try to write something which trigger an
-        EBADF in docker).
+           stdout and stderr currently don't work due to limitations on Docker:
+           you can't get the id of container, in a race-condition free way,
+           with stdout and stderr enabled on docker run. A workaround would be
+           to start a shell in detached mode and then execute the command from
+           docker attach, but docker attach doesn't exit correctly when the
+           process exits (it hangs on stdin until you try to write something
+           which trigger an EBADF in docker).
         """
 
         logging.debug("Starting {0} in a {1} container as user {2}".format(
@@ -224,7 +237,7 @@ class Container(object):
                        they are streamed to stdout), it can also be
                        Container.PIPE.
 
-        .. warning:: due to limitations in Docker (see :method:`run`), the
+        .. warning:: due to limitations in Docker (see :meth:`run`), the
                      first lines of output might be lost.
         """
 
@@ -262,7 +275,30 @@ _ImageRevSpec = collections.namedtuple(
     "_ImageRevSpec", ["username", "repository", "revision", "tag"]
 )
 class ImageRevSpec(_ImageRevSpec):
-    """Human representation of an image revision in Docker."""
+    """Human representation of an image revision in Docker.
+
+    .. attribute:: username
+
+       The username for this revspec or None.
+
+    .. attribute:: repository
+
+       The repository for this revspec or None.
+
+    .. attribute:: revision
+
+       The revision for this revspec or None.
+
+    .. attribute:: tag
+
+       The tag for this revspec or None.
+
+    .. attribute:: fqrn
+
+       The string username/repository if both are set, repository if the
+       username is missing, or None if everything is missing (fqrn stands for
+       “Fully Qualified Repository Name”).
+    """
 
     def __str__(self):
         s = ""
@@ -314,18 +350,20 @@ class ImageRevSpec(_ImageRevSpec):
 
     @property
     def fqrn(self):
-        """"Fully Qualified Repository Name"
-        
-        :return: the string username/repository if both are set, repository if
-                 the username is missing, or None if everything is missing.
-        """
-
         if self.username and self.repository:
             return "{0}/{1}".format(self.username, self.repository)
         return self.repository
 
     @classmethod
     def parse(cls, revspec):
+        """Parse a Docker image name and return an :class:`ImageRevSpec` object.
+
+        Docker image names are in the form::
+
+           revspec = [ user "/" ] repo [ ":" ( tag | revision ) ]
+                   | revision ;
+        """
+
         username = repository = revision = tag = username_and_repo = None
         revspec_len = len(revspec)
         rev_separator = revspec.find(":")
@@ -396,7 +434,34 @@ class Image(object):
     """Represent an image in Docker. Can be used to start a :class:`Container`.
 
     :param revspec: :class:`ImageRevSpec` that identify a specific image version.
-    :raise UnkownImageError: if the image is not know from the local Docker.
+    :raises: :class:`~udotcloud.sandbox.exceptions.UnkownImageError` If the
+             image is not know from the local Docker.
+
+    .. attribute:: revspec
+
+       The :class:`ImageRevSpec` identifying the underlying Docker image.
+
+    .. attribute:: username
+
+       The username for this image or None.
+
+    .. attribute:: repository
+
+       The repository for this image or None.
+
+    .. attribute:: revision
+
+       The revision for this image or None.
+
+    .. attribute:: tag
+
+       The tag for this image or None.
+
+    .. attribute:: fqrn
+
+       The string username/repository if both are set, repository if the
+       username is missing, or None if everything is missing (fqrn stands for
+       “Fully Qualified Repository Name”).
     """
 
     def __init__(self, revspec):
@@ -458,12 +523,13 @@ class Image(object):
     def destroy(self):
         """Remove the image from Docker.
 
-        .. warning:: Once you have called this method the current object is
-                     invalidated and you can't call further method on it. If
-                     you have multiple :class:`Image` objects pointing to the
-                     same revision (but with different tags for example), and
-                     destroy one of them, then the others will become invalid
-                     too.
+        .. warning::
+
+           Once you have called this method the current object is invalidated
+           and you can't call further method on it. If you have multiple
+           :class:`Image` objects pointing to the same revision (but with
+           different tags for example), and destroy one of them, then the
+           others will become invalid too.
         """
 
         logging.debug("Destroying image {0} from Docker".format(self.revspec))
@@ -475,12 +541,17 @@ class Image(object):
 
     @_check_exists
     def add_tag(self, tag):
+        """Add a new tag to this image.
+
+        :return: the new :class:`Image`.
+        """
+
         logging.debug("Tagging {0} as {1}".format(self.revspec, tag))
         with _CatchDockerError():
             gevent.subprocess.check_call([
                 "docker", "tag", self.revspec.revision, self.revspec.fqrn, tag
             ])
-        # We can't reinstantiate an Image object, because it might resolve to
+        # We can't re-instantiate an Image object, because it might resolve to
         # the wrong revspec when it parses the output of docker images (and
         # it's slower anyway):
         new_image = copy.copy(self)

@@ -1,5 +1,13 @@
 # -*- coding: utf-8 -*-
 
+"""
+sandbox.sources
+~~~~~~~~~~~~~~~
+
+This module implements :class:`Application` which is the counterpart of
+:class:`builder.Builder <udotcloud.builder.builder.Builder>`.
+"""
+
 import contextlib
 import copy
 import gevent
@@ -24,11 +32,18 @@ from .tarfile import Tarball
 from ..builder import BUILDER_INSTALL_PATH
 
 class Application(object):
+    """Represents a dotCloud application.
+
+    :param root: source directory of the application.
+    :param env: additional environment variables to define for this application.
+    """
 
     def __init__(self, root, env):
         self._root = root
+        #: Name of the application
         self.name = os.path.basename(root)
         username = os.environ.get("USER", "undefined")
+        #: Environment for the application
         self.environment = {
             "DOTCLOUD_PROJECT": self.name,
             "DOTCLOUD_ENVIRONMENT": "default",
@@ -41,6 +56,7 @@ class Application(object):
         self.environment.update(env)
         with open(os.path.join(self._root, "dotcloud.yml"), "r") as yml:
             self._build_file = load_build_file(yml.read())
+        #: List of :class:`Service` in the application
         self.services = [
             Service(self, name, definition)
             for name, definition in self._build_file.iteritems()
@@ -84,6 +100,14 @@ class Application(object):
         return [app_tarball.dest, sandbox_sdist, bootstrap_script]
 
     def build(self, base_image=None):
+        """Build the application using Docker.
+
+        :return: a dictionnary with the service names in keys and the resulting
+                 Docker images in values. Returns an empty dictionnary if there
+                 is no buildable service in this application (i.e: only
+                 databases). Returns None if one service couldn't be built.
+        """
+
         if not self._buildable_services:
             return {}
 
@@ -116,6 +140,18 @@ class Application(object):
         return {s.name: s.result_image for s in self.services}
 
     def run(self):
+        """Run the application in Docker using the result of the latest build.
+
+        :raises: :class:`~udotcloud.sandbox.exceptions.UnkownImageError` if the
+                 application wasn't correctly built.
+
+        .. note::
+
+           Only buildable services are run, databases won't be started.
+           Moreover, keep in mind that postinstall has not been executed during
+           the build (postinstall expects to have the databases running).
+        """
+
         # TODO: install a specific SIGINT handler here?
         greenlets = [gevent.spawn(s.run) for s in self._buildable_services]
         # FIXME: If one greenlet dies early (because the service doesn't run),
@@ -140,6 +176,7 @@ class Application(object):
         return True
 
 class Service(object):
+    """Represents a single service within a dotCloud application."""
 
     CUSTOM_PORTS_RANGE_START = 42800
 
