@@ -35,4 +35,9 @@ Requirements
 - Python 2.7 (older versions *won't* work);
 - A C compiler and the Python development headers.
 
+Documentation
+-------------
+
+The full documentation is reachable at http://sandbox.dotcloud.com/.
+
 .. vim: set tw=80 spelllang=en spell:
