@@ -41,7 +41,7 @@ class Application(object):
     def __init__(self, root, env):
         self._root = root
         #: Name of the application
-        self.name = os.path.basename(root)
+        self.name = os.path.basename(os.path.abspath(root))
         username = os.environ.get("USER", "undefined")
         #: Environment for the application
         self.environment = {

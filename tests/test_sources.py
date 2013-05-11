@@ -28,6 +28,14 @@ class TestApplication(unittest.TestCase):
     def test_load_simple_application(self):
         application = Application(os.path.join(self.path, "simple_python_app"), {})
         self.assertEqual(len(application.services), 1)
+        self.assertEqual(application.name, "simple_python_app")
+        self.assertEqual(application.services[0].name, "www")
+        self.assertEqual(application.services[0].type, "python")
+
+    def test_load_simple_application_trailing_slash(self):
+        application = Application(os.path.join(self.path, "simple_python_app") + "/", {})
+        self.assertEqual(len(application.services), 1)
+        self.assertEqual(application.name, "simple_python_app")
         self.assertEqual(application.services[0].name, "www")
         self.assertEqual(application.services[0].type, "python")
 
