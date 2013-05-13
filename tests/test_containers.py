@@ -70,6 +70,10 @@ class TestContainers(ContainerTestCase):
         )
         self.assertEqual(tagged.tag, "foobar")
 
+    def test_run_stop(self):
+        with self.container.run(["cat", "/dev/zero"]):
+            self.container.stop(wait=1)
+
     def test_run_stream_logs(self):
         with self.container.run_stream_logs(
             ["/bin/sh", "-c", "sleep 1; echo tick"],
@@ -99,3 +103,7 @@ class TestContainers(ContainerTestCase):
             self.assertIsInstance(container.ports, dict)
             output = container.communicate()[0]
             self.assertIn("TOTO=POUET", output)
+
+    def test_run_stream_logs_stop(self):
+        with self.container.run_stream_logs(["cat", "/dev/zero"]):
+            self.container.stop(wait=1)

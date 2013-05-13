@@ -214,6 +214,7 @@ class Container(object):
                 with _CatchDockerError():
                     gevent.subprocess.check_call(["docker", "rm", self._id])
                 logging.debug("Container {0} destroyed".format(self._id))
+                self._id = None
 
     @contextlib.contextmanager
     def run_stream_logs(self, cmd, as_user=None, ports=[], env={}, output=None):
@@ -248,28 +249,51 @@ class Container(object):
         as_user = ["-u", as_user] if as_user else []
         ports = self._generate_option_list("-p", [str(p) for p in ports])
         env = self._generate_env_option_list(env)
-        with _CatchDockerError():
-            self._id = gevent.subprocess.check_output(
-                ["docker", "run", "-d"] + as_user + env
-                + ports + [self.image.revision] + cmd
-            ).strip()
-            docker = gevent.subprocess.Popen(
-                ["docker", "attach", self._id],
-                stdout=output, stderr=self.STDOUT
-            )
-            container_infos = json.loads(gevent.subprocess.check_output(
-                ["docker", "inspect", self._id]
-            ).strip())
-            port_mapping = container_infos['NetworkSettings']['PortMapping']
-            docker.ports = {int(k): int(v) for k, v in port_mapping.iteritems()}
+        try:
+            with _CatchDockerError():
+                self._id = gevent.subprocess.check_output(
+                    ["docker", "run", "-d"] + as_user + env
+                    + ports + [self.image.revision] + cmd
+                ).strip()
+                docker = gevent.subprocess.Popen(
+                    ["docker", "attach", self._id],
+                    stdout=output, stderr=self.STDOUT
+                )
+                container_infos = json.loads(gevent.subprocess.check_output(
+                    ["docker", "inspect", self._id]
+                ).strip())
+                port_mapping = container_infos['NetworkSettings']['PortMapping']
+                docker.ports = {
+                    int(k): int(v) for k, v in port_mapping.iteritems()
+                }
 
-        yield docker
+            yield docker
 
-        logging.debug("Waiting for container {0} to terminate".format(
-            self._id
-        ))
-        docker.wait()
-        logging.debug("Container {0} stopped".format(self._id))
+            logging.debug("Waiting for container {0} to terminate".format(
+                self._id
+            ))
+            docker.wait()
+            logging.debug("Container {0} stopped".format(self._id))
+        finally:
+            self._id = None
+
+    def stop(self, wait=10):
+        """If the container is running, interrupt it.
+
+        This will send a SIGTERM to the process running inside the container.
+        If this process doesn't exit after *wait* seconds then it is killed.
+        """
+
+        if self._id:
+            with open("/dev/null", "w") as ignore, _CatchDockerError():
+                # NOTE: not a big deal if we try to stop a container that's
+                # already stopped or doesn't exist anymore, moreover don't set
+                # self._id to None after that, run or run_stream_logs need it.
+                gevent.subprocess.check_call(
+                    ["docker", "stop", "-t", str(wait), self._id],
+                    stdout=ignore, stderr=self.STDOUT
+                )
+
 
 _ImageRevSpec = collections.namedtuple(
     "_ImageRevSpec", ["username", "repository", "revision", "tag"]
