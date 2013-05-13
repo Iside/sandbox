@@ -244,8 +244,16 @@ stderr_logfile={supervisor_dir}/{name}_error.log
             os.path.join(self._build_dir, "dotcloud_profile"), self._profile
         )
 
+def get_service_class(svc_type):
+    """Return the right “builder” class for the given service type or None."""
+
+    return {
+        "python-worker": PythonWorker,
+        "custom": Custom
+    }.get(svc_type)
+
 def get_service(build_dir, svc_dir, svc_definition):
-    """Return the right “builder” class for the given service.
+    """Return the right “builder” object for the given service.
 
     :param build_dir: directory where the source code has been untared.
     :param svc_dir: directory where the code for the current service is
@@ -253,12 +261,10 @@ def get_service(build_dir, svc_dir, svc_definition):
     :param svc_definition: the definition of the current service (the
                            dictionnary for the current service from
                            dotcloud.yml).
+    :raises: ValueError, if no builder exists for this type of service.
     """
 
-    service_class = {
-        "python-worker": PythonWorker,
-        "custom": Custom
-    }.get(svc_definition['type'])
+    service_class = get_service_class(svc_definition['type'])
     if not service_class:
         raise ValueError("No builder defined for {0} services".format(
             svc_definition['type']

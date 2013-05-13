@@ -29,7 +29,7 @@ from .buildfile import load_build_file
 from .containers import ImageRevSpec, Image
 from .exceptions import UnkownImageError
 from .tarfile import Tarball
-from ..builder import BUILDER_INSTALL_PATH
+from .. import builder
 
 class Application(object):
     """Represents a dotCloud application.
@@ -201,7 +201,7 @@ class Service(object):
         # TODO: actually build a list of services which are buildable or not,
         # once we have merged "builder" back in the same application that
         # should be easy since we will have access to builder.services.
-        self.buildable = True
+        self.buildable = bool(builder.services.get_service_class(self.type))
         # "Allocate" the custom ports we are going to bind too inside the
         # container
         self._allocate_custom_ports()
@@ -331,7 +331,7 @@ class Service(object):
         # Since we don't actually go through login(1) we need to set HOME
         # otherwise, .profile won't be executed by login shells:
         with container.run(
-            [BUILDER_INSTALL_PATH, self._extract_path],
+            [builder.BUILDER_INSTALL_PATH, self._extract_path],
             env={"HOME": "/home/dotcloud"}, as_user="dotcloud"
         ):
             logging.debug("Running builder in service {0}".format(self.name))

@@ -79,6 +79,12 @@ class TestApplication(unittest.TestCase):
             self.assertIn("dotcloud.yml", container.logs)
             self.assertIn("buildscript-stamp", container.logs)
 
+    def test_mysql_application_build(self):
+        application = Application(os.path.join(self.path, "mysql_app"), {})
+        images = application.build(base_image=Image(ImageRevSpec.parse("lopter/sandbox-base:latest")))
+        self.assertIsInstance(images, dict)
+        self.assertEqual(len(images), 0)
+
 class TestService(ContainerTestCase):
 
     def setUp(self):
