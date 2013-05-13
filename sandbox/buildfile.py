@@ -189,7 +189,33 @@ def validate_ast_schema(ast, valid_services):
     schema.validate(ast, 'service(s) dict')
 
 
-def load_build_file(build_file_content, valid_services=["python", "python-worker", "custom"]):
+VALID_SERVICES = {
+    'redis': 'advanced key-value store',
+    'python': 'host any Python/WSGI web app: Django, Pylons, Web2py...',
+    'ruby': 'host any Ruby/Rack web app: Rails, Sinatra...',
+    'perl': 'host any Perl/PSGI web app: Plack, Mojolicious, Dancer...',
+    'perl-worker': 'run backgound Perl processes',
+    'php': 'host any PHP web app: Drupal, WordPress...',
+    'postgis': 'PostgreSQL with the PostGIS extensions',
+    'postgresql': 'the world\'s most advanced open source database',
+    'mysql': 'the world\'s most popular open source database',
+    'mysql-masterslave': 'MySQL Master/Slave replicated deployment',
+    'static': 'host static HTTP content',
+    'rabbitmq': 'AMQP message queue server',
+    'java': 'host any Java servlet (also Clojure, Play!, and much more)',
+    'php-worker': 'run background PHP processes',
+    'python-worker': 'run background Python processes',
+    'smtp': 'authenticated SMTP relay to send e-mails reliably',
+    'ruby-worker': 'run background Ruby processes',
+    'nodejs': 'run JavaScript processes (including web apps)',
+    'mongodb': 'scalable, high-performance, document-oriented database',
+    'solr': 'the search server based on the Lucene Java search library',
+    'opa': 'the unified language for web 2.0 development',
+    'custom': 'custom'
+}
+
+
+def load_build_file(build_file_content, valid_services=VALID_SERVICES):
     """ Load and parse the build description contained in the build file """
     stream = StringIO(build_file_content)
     stream.name = 'dotcloud.yml'  # yaml load will use this property
