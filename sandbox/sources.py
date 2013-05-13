@@ -205,6 +205,7 @@ class Service(object):
         # "Allocate" the custom ports we are going to bind too inside the
         # container
         self._allocate_custom_ports()
+        self._container = None
 
     # XXX This is half broken right now, since we will loose the original
     # protocol of the port (tcp or udp), anyway good enough for now (docker
@@ -314,51 +315,63 @@ class Service(object):
             self.name, svc_tarball.dest
         ))
         # Upload all the code:
-        container = base_image.instantiate(commit_as=self._build_revspec())
-        self._unpack_service_tarball(svc_tarball.dest, container)
+        self._container = base_image.instantiate(
+            commit_as=self._build_revspec()
+        )
+        self._unpack_service_tarball(svc_tarball.dest, self._container)
         # Install the builder via the bootstrap script
-        container = container.result.instantiate(
+        self._container = self._container.result.instantiate(
             commit_as=self._build_revspec()
         )
         bootstrap_script = os.path.join(self._extract_path, "bootstrap.sh")
-        with container.run([bootstrap_script]):
+        with self._container.run([bootstrap_script]):
             logging.debug("Installing builder in service {0}".format(self.name))
-        logging.debug("Builder bootstrap logs:\n{0}".format(container.logs))
+        logging.debug("Builder bootstrap logs:\n{0}".format(
+            self._container.logs
+        ))
         # And run it
-        container = container.result.instantiate(
+        self._container = self._container.result.instantiate(
             commit_as=self._result_revspec()
         )
         # Since we don't actually go through login(1) we need to set HOME
         # otherwise, .profile won't be executed by login shells:
-        with container.run(
+        with self._container.run(
             [builder.BUILDER_INSTALL_PATH, self._extract_path],
             env={"HOME": "/home/dotcloud"}, as_user="dotcloud"
         ):
             logging.debug("Running builder in service {0}".format(self.name))
         logging.info("Build logs for {0}:\n{1}".format(
-            self.name, container.logs
+            self.name, self._container.logs
         ))
-        self.result_image = container.result
+        self.result_image = self._container.result
         self.result_image.add_tag("latest")
+        self._container = None
 
     def run(self):
         image = Image(self._latest_result_revspec)
-        container = image.instantiate()
+        self._container = image.instantiate()
         ports = self.ports.values()
         ports.append(22)
         if not "worker" in self.type:
             ports.append(80)
         supervisor_conf = os.path.join(self._extract_path, "supervisor.conf")
         logging.info("Starting Supervisor in {0}".format(image))
-        with container.run_stream_logs(
+        with self._container.run_stream_logs(
             ["supervisord", "-n", "-c", supervisor_conf],
             env={"HOME": "/home/dotcloud"},
             as_user="dotcloud",
             ports=ports
-        ) as container:
-            for port, mapped_port in container.ports.iteritems():
+        ) as supervisor:
+            for port, mapped_port in supervisor.ports.iteritems():
                 logging.info(
                     "Port {0} on service {1} mapped to {2} on the "
                     "Docker host".format(port, self.name, mapped_port)
                 )
         logging.info("Service {0} exited".format(self.name))
+        self._container = None
+
+    def stop(self):
+        """If the service is currently running or building, interrupt it."""
+
+        if self._container:
+            self._container.stop()
