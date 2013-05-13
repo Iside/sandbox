@@ -3,5 +3,3 @@
 env
 
 touch buildscript-stamp
-
-cp -a * ~/

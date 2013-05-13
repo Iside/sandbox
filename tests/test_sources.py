@@ -74,7 +74,7 @@ class TestApplication(unittest.TestCase):
             ContainerTestCase.random_image_name()
         ))
         with _destroy_result(container):
-            with container.run(["ls", "/home/dotcloud/"]):
+            with container.run(["ls", "/tmp/code/"]):
                 pass
             self.assertIn("dotcloud.yml", container.logs)
             self.assertIn("buildscript-stamp", container.logs)
