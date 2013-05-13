@@ -20,16 +20,18 @@ import pkg_resources
 import pprint
 import re
 import shutil
+import signal
 import socket
 import tempfile
 import time
 import yaml
 
+from .. import builder
 from .buildfile import load_build_file
 from .containers import ImageRevSpec, Image
 from .exceptions import UnkownImageError
 from .tarfile import Tarball
-from .. import builder
+from ..utils import strsignal
 
 class Application(object):
     """Represents a dotCloud application.
@@ -152,13 +154,26 @@ class Application(object):
            the build (postinstall expects to have the databases running).
         """
 
-        # TODO: install a specific SIGINT handler here?
-        greenlets = [gevent.spawn(s.run) for s in self._buildable_services]
+        def signal_handler(signum):
+            logging.info("{0} caught, stopping {1} services…".format(
+                strsignal(signum), len(greenlets)
+            ))
+            gevent.joinall([gevent.spawn(service.stop) for service in services])
+
+        services = [service for service in self._buildable_services]
+        greenlets = [gevent.spawn(service.run) for service in services]
         # FIXME: If one greenlet dies early (because the service doesn't run),
         # we will stay blocked here waiting on the other services to terminate.
         # So, we need to find a way to catch the error asap, maybe we could do
         # that with an Event + a series of Greenlet.get(block=False)?
-        gevent.joinall(greenlets)
+        sigterm_handler = gevent.signal(signal.SIGTERM, signal_handler)
+        try:
+            gevent.joinall(greenlets)
+        except KeyboardInterrupt:
+            signal_handler(signal.SIGINT)
+        finally:
+            gevent.signal(signal.SIGTERM, sigterm_handler)
+
         for service, result in zip(self._buildable_services, greenlets):
             try:
                 result.get()
