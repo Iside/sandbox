@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 
 install_dir=/var/lib/dotcloud
 env_dir=$install_dir/builder

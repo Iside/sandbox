@@ -133,7 +133,8 @@ class Application(object):
             gevent.joinall(greenlets)
             for service, result in zip(self._buildable_services, greenlets):
                 try:
-                    result.get()
+                    if not result.get():
+                        return None
                 except Exception:
                     logging.exception("Couldn't build service {0} ({1})".format(
                         service.name, service.type
@@ -345,6 +346,11 @@ class Service(object):
         logging.debug("Builder bootstrap logs:\n{0}".format(
             self._container.logs
         ))
+        if self._container.exit_status != 0:
+            logging.warning(
+                "Couldn't install the builder in service {0} (bootstrap script "
+                "returned {1}".format(self.name, self._container.exit_status)
+            )
         # And run it
         self._container = self._container.result.instantiate(
             commit_as=self._result_revspec()
@@ -359,9 +365,16 @@ class Service(object):
         logging.info("Build logs for {0}:\n{1}".format(
             self.name, self._container.logs
         ))
+        if self._container.exit_status != 0:
+            logging.error(
+                "The build failed on service {0}: the builder returned {1} "
+                "(expected 0)".format(self.name, self._container.exit_status)
+            )
+            return False
         self.result_image = self._container.result
         self.result_image.add_tag("latest")
         self._container = None
+        return True
 
     def run(self):
         image = Image(self._latest_result_revspec)

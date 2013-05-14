@@ -1,0 +1,3 @@
+api:
+    type: python-worker
+    prebuild: ./prebuild

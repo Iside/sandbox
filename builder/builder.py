@@ -84,9 +84,9 @@ class Builder(object):
         service_builder = get_service(
             self._build_dir, self._current_dir, self._svc_definition
         )
-        if service_builder.build():
+        returncode = service_builder.build()
+        if returncode == 0:
             log_success("{0} build done for service {1}".format(
                 self._svc_definition['type'], self._svc_definition['name']
             ))
-            return True
-        return False
+        return returncode

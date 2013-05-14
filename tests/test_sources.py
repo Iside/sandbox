@@ -85,6 +85,11 @@ class TestApplication(unittest.TestCase):
         self.assertIsInstance(images, dict)
         self.assertEqual(len(images), 0)
 
+    def test_broken_application_build(self):
+        application = Application(os.path.join(self.path, "broken_build"), {})
+        images = application.build(base_image=Image(ImageRevSpec.parse("lopter/sandbox-base:latest")))
+        self.assertEqual(images, None)
+
 class TestService(ContainerTestCase):
 
     def setUp(self):

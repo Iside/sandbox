@@ -32,8 +32,7 @@ manually."""
 
     try:
         builder = Builder(args.sources)
-        if builder.build():
-            sys.exit(0)
+        sys.exit(builder.build())
     except Exception:
         logging.exception("Sorry, the following bug happened:")
     sys.exit(1)

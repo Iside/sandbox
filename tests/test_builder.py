@@ -152,3 +152,11 @@ stdout_logfile={install_dir}/supervisor/db.log
 stderr_logfile={install_dir}/supervisor/db_error.log
 
 """.format(install_dir=self.installdir), supervisor_configuration)
+
+class TestBuilderBrokenBuild(TestBuilderCase):
+
+    sources_path = "broken_build"
+    service_name = "api"
+
+    def test_builder_build(self):
+        self.assertEqual(self.builder.build(), 42)

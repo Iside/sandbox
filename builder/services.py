@@ -132,8 +132,8 @@ files=/home/dotcloud/current/supervisord.conf
                 logging.error(msg + "was not found")
             else:
                 logging.error(msg + "returned {0}".format(ex.returncode))
-            return False
-        return True
+            return ex.returncode
+        return 0
 
 class PythonWorker(ServiceBase):
 
