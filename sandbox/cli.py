@@ -39,7 +39,10 @@ def cmd_build(args, application):
         logging.error("Can't parse your image revision/name: {0}".format(ex))
         sys.exit(1)
     except UnkownImageError:
-        logging.error("The image {0} doesn't exist".format(args.image))
+        logging.error(
+            "The image {0} doesn't exist "
+            "(maybe you need to pull it in Docker?)".format(args.image)
+        )
         sys.exit(1)
 
     logging.debug("Starting build with base image: {0}".format(

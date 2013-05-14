@@ -116,7 +116,8 @@ class Application(object):
         if not base_image:
             # TODO: design something to automatically pick a base image.
             logging.error(
-                "You need to specify the base image to use via the -i option"
+                "You need to specify the base image to use via the -i option "
+                "(you can pull and try lopter/sandbox-base)"
             )
             return
 
