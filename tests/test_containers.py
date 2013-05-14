@@ -44,11 +44,13 @@ class TestContainers(ContainerTestCase):
             cat.stdin.close() # EOF
         self.assertEqual(self.container.logs, "TRAVERSABLE WORMHOLE!\n")
         self.assertEqual(self.container.result.revspec, self.result_revspec)
+        self.assertEqual(self.container.exit_status, 0)
 
     def test_container_as_user(self):
         with self.container.run(["/bin/ls", "/root"], as_user="nobody"):
             pass
         self.assertIn("Permission denied", self.container.logs)
+        self.assertEqual(self.container.exit_status, 2)
 
     def test_container_run_env(self):
         with self.container.run(["/usr/bin/env"], env={"TOTO": "POUET"}):
@@ -73,6 +75,7 @@ class TestContainers(ContainerTestCase):
     def test_run_stop(self):
         with self.container.run(["cat", "/dev/zero"]):
             self.container.stop(wait=1)
+        self.assertEqual(self.container.exit_status, 137) # SIGKILLED
 
     def test_run_stream_logs(self):
         with self.container.run_stream_logs(

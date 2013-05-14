@@ -17,6 +17,7 @@ import collections
 import contextlib
 import copy
 import gevent
+import gevent.event
 import gevent.subprocess
 import itertools
 import json
@@ -61,6 +62,8 @@ class Container(object):
         self.logs = None
         self.commit_as = commit_as
         self._id = None
+        #: The return code of the process that was executed in the container.
+        self.exit_status = None
 
     @staticmethod
     def _generate_option_list(option, args):
@@ -74,6 +77,19 @@ class Container(object):
         return cls._generate_option_list(
             "-e", ["{0}={1}".format(k, v) for k, v in env.iteritems()]
         )
+
+    def _get_container_infos(self, async=False):
+        def _inspect_container():
+            logging.debug("Inspecting container {0}".format(self._id))
+            with _CatchDockerError():
+                return json.loads(gevent.subprocess.check_output([
+                    "docker", "inspect", self._id
+                ]).strip())
+        if async:
+            async_result = gevent.event.AsyncResult()
+            gevent.spawn(_inspect_container).link(async_result)
+            return async_result
+        return _inspect_container()
 
     def install_system_packages(self, packages):
         # XXX: pay attention to the tricks done in snapshots/worker.py
@@ -172,6 +188,8 @@ class Container(object):
             )
             logs = gevent.spawn(logs.communicate)
 
+            container_infos = self._get_container_infos(async=True)
+
             # Commit a new image from the container
             username = repository = tag = None
             commit = ["docker", "commit", self._id]
@@ -206,6 +224,12 @@ class Container(object):
                 self.logs = logs.get()[0]
             logging.debug("{0} of logs fetched from container {1}".format(
                 bytes_to_human(len(self.logs)), self._id
+            ))
+
+            container_infos = container_infos.get()
+            self.exit_status = container_infos['State']['ExitCode']
+            logging.debug("Container {0} returned {1}".format(
+                self._id, self.exit_status
             ))
         finally:
             if self._id:
@@ -259,9 +283,7 @@ class Container(object):
                     ["docker", "attach", self._id],
                     stdout=output, stderr=self.STDOUT
                 )
-                container_infos = json.loads(gevent.subprocess.check_output(
-                    ["docker", "inspect", self._id]
-                ).strip())
+                container_infos = self._get_container_infos()
                 port_mapping = container_infos['NetworkSettings']['PortMapping']
                 docker.ports = {
                     int(k): int(v) for k, v in port_mapping.iteritems()
@@ -274,6 +296,11 @@ class Container(object):
             ))
             docker.wait()
             logging.debug("Container {0} stopped".format(self._id))
+            container_infos = self._get_container_infos()
+            self.exit_status = container_infos['State']['ExitCode']
+            logging.debug("Container {0} returned {1}".format(
+                self._id, self.exit_status
+            ))
         finally:
             self._id = None
 
