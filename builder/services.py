@@ -122,7 +122,7 @@ files=/home/dotcloud/current/supervisord.conf
             self._hook_postbuild()
         except subprocess.CalledProcessError as ex:
             msg = "Can't build service {0} ({1}): the command " \
-                "`{2}` ".format(self._name, self._type, " ".join(ex.cmd))
+                "`{2}` ".format(self._name, self._type, ex.cmd)
             if ex.returncode < 0:
                 signum = -ex.returncode
                 logging.error(msg + "exited on signal {0} ({1})".format(
