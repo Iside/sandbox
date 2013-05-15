@@ -95,7 +95,8 @@ generated in the environment).
         help="Specify which Docker image to use as a starting point to build services"
     )
     parser_build.add_argument("application",
-        help="Path to your application source directory (where your dotcloud.yml is)"
+        help="Path to your application source directory (where your dotcloud.yml is)",
+        default=".", nargs="?"
     )
 
     parser_run = subparsers.add_parser("run",
@@ -103,7 +104,8 @@ generated in the environment).
             "with the build command (EXPERIMENTAL)"
     )
     parser_run.add_argument("application",
-        help="Path to your application source directory (where your dotcloud.yml is)"
+        help="Path to your application source directory (where your dotcloud.yml is)",
+        default=".", nargs="?"
     )
 
     args = parser.parse_args()
