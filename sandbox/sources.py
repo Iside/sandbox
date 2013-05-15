@@ -383,10 +383,12 @@ class Service(object):
         ports.append(2222)
         if not "worker" in self.type:
             ports.append(8080)
-        supervisor_conf = os.path.join(self._extract_path, "supervisor.conf")
+        supervisor_cmd = "exec supervisord -nc {0}".format(os.path.join(
+            self._extract_path, "supervisor.conf"
+        ))
         logging.info("Starting Supervisor in {0}".format(image))
         with self._container.run_stream_logs(
-            ["supervisord", "-n", "-c", supervisor_conf],
+            ["/bin/sh", "-lc", supervisor_cmd],
             env={"HOME": "/home/dotcloud"},
             as_user="dotcloud",
             ports=ports
