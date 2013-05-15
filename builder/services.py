@@ -47,11 +47,8 @@ stderr_logfile={supervisor_dir}/{name}_error.log
     def _install_requirements(self): pass
 
     def _run_hook(self, hook_script):
-        subprocess.check_call(
-            "chmod +x {0} >/dev/null 2>&1; exec {0}".format(hook_script),
-            cwd=self._svc_dir,
-            shell=True
-        )
+        hook_cmd = "chmod +x {0} >/dev/null 2>&1; exec {0}".format(hook_script)
+        subprocess.check_call([ "/bin/sh", "-lc", hook_cmd], cwd=self._svc_dir)
 
     def _hook_prebuild(self):
         if self._prebuild_script:
