@@ -380,9 +380,9 @@ class Service(object):
         image = Image(self._latest_result_revspec)
         self._container = image.instantiate()
         ports = self.ports.values()
-        ports.append(22)
+        ports.append(2222)
         if not "worker" in self.type:
-            ports.append(80)
+            ports.append(8080)
         supervisor_conf = os.path.join(self._extract_path, "supervisor.conf")
         logging.info("Starting Supervisor in {0}".format(image))
         with self._container.run_stream_logs(
