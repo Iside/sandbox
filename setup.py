@@ -21,7 +21,8 @@ requirements = [
     "pyyaml",
     "colorama>=0.2.5,<0.3",
     "Cython>=0.19,<0.20",
-    "gevent"
+    "gevent",
+    "Jinja2>=2.6,<2.7"
 ]
 
 package_dir = {
@@ -75,10 +76,12 @@ setup(
     packages=package_dir.keys(),
     package_dir=package_dir,
     namespace_packages=["udotcloud"],
-    package_data={"udotcloud.sandbox": [
-        "../builder/bootstrap.sh",
-        os.path.join("..", sdist)
-    ]},
+    package_data={
+        "udotcloud.sandbox": [
+            "../builder/bootstrap.sh", os.path.join("..", sdist)
+        ],
+        "udotcloud.builder": ["templates/*/*"]
+    },
     include_package_data=True,
     entry_points={"console_scripts": ["sandbox = udotcloud.sandbox.cli:main"]},
     # We can't use an entry point for dotcloud-builder, because setuptools will

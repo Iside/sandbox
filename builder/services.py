@@ -15,6 +15,7 @@ import os
 import shutil
 import subprocess
 
+from .templates import TemplatesRepository
 from ..utils import ignore_eexist, strsignal
 
 class ServiceBase(object):
@@ -42,6 +43,7 @@ stderr_logfile={supervisor_dir}/{name}_error.log
         self._supervisor_dir = os.path.join(self._build_dir, "supervisor")
         self._supervisor_include = os.path.join(self._build_dir, "supervisor.conf")
         self._profile = os.path.join(self._build_dir, "dotcloud_profile")
+        self._templates = TemplatesRepository()
 
     def _configure(self): pass
     def _install_requirements(self): pass

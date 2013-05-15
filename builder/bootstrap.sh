@@ -33,6 +33,6 @@ sandbox_sdist=`dirname $0`/udotcloud.sandbox.tar.gz
 # tool which include gevent which takes a long time to compile. So, let's
 # install the dependencies manually here; hopefully they wan't change often.
 pip install --no-deps -U $sandbox_sdist
-pip install 'colorama>=0.2.5,<0.3'
+pip install 'colorama>=0.2.5,<0.3' 'jinja2>=2.6,<2.7'
 
 rm -f $sandbox_sdist $0
