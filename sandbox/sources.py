@@ -396,7 +396,12 @@ class Service(object):
                     "Port {0} on service {1} mapped to {2} on the "
                     "Docker host".format(port, self.name, mapped_port)
                 )
-        logging.info("Service {0} exited".format(self.name))
+        if self._container.exit_status != 0:
+            logging.warning("Service {0} exited with status {1}".format(
+                self.name, self._container.exit_status
+            ))
+        else:
+            logging.info("Service {0} exited".format(self.name))
         self._container = None
 
     def stop(self):

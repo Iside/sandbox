@@ -52,10 +52,12 @@ stderr_logfile={supervisor_dir}/{name}_error.log
 
     def _hook_prebuild(self):
         if self._prebuild_script:
+            logging.info("Running prebuild hook `{0}`".format(self._prebuild_script))
             self._run_hook(self._prebuild_script)
 
     def _hook_postbuild(self):
         if self._postbuild_script:
+            logging.info("Running postbuild hook `{0}`".format(self._postbuild_script))
             self._run_hook(self._postbuild_script)
 
     def _symlink_current(self):
@@ -118,8 +120,9 @@ files=/home/dotcloud/current/supervisord.conf
             self._install_requirements()
             self._hook_postbuild()
         except subprocess.CalledProcessError as ex:
+            cmd = " ".join(ex.cmd) if isinstance(ex.cmd, list) else ex.cmd
             msg = "Can't build service {0} ({1}): the command " \
-                "`{2}` ".format(self._name, self._type, ex.cmd)
+                "`{2}` ".format(self._name, self._type, cmd)
             if ex.returncode < 0:
                 signum = -ex.returncode
                 logging.error(msg + "exited on signal {0} ({1})".format(
