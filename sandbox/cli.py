@@ -2,6 +2,7 @@
 
 import argparse
 import colorama
+import errno
 import logging
 import re
 import string
@@ -121,9 +122,14 @@ generated in the environment).
         try:
             application = Application(args.application, env)
         except IOError as ex:
-            logging.error("Couldn't load {0}: {1}".format(
-                args.application, ex.strerror
-            ))
+            if ex.errno == errno.ENOENT:
+                logging.error("Couldn't find a dotcloud.yml in {0}".format(
+                    args.application
+                ))
+            else:
+                logging.error("Couldn't load {0}: {1}".format(
+                    args.application, ex.strerror
+                ))
             sys.exit(1)
         logging.debug("Application's buildfile: {0}".format(application))
         logging.debug("Application's environment: {0}".format(
