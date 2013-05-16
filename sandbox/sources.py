@@ -11,6 +11,7 @@ This module implements :class:`Application` which is the counterpart of
 import contextlib
 import copy
 import gevent
+import gevent.event
 import gevent.subprocess
 import itertools
 import json
@@ -162,35 +163,52 @@ class Application(object):
             ))
             gevent.joinall([gevent.spawn(service.stop) for service in services])
 
-        services = [service for service in self._buildable_services]
-        greenlets = [gevent.spawn(service.run) for service in services]
-        # FIXME: If one greenlet dies early (because the service doesn't run),
-        # we will stay blocked here waiting on the other services to terminate.
-        # So, we need to find a way to catch the error asap, maybe we could do
-        # that with an Event + a series of Greenlet.get(block=False)?
-        sigterm_handler = gevent.signal(signal.SIGTERM, signal_handler)
-        try:
-            gevent.joinall(greenlets)
-        except KeyboardInterrupt:
-            signal_handler(signal.SIGINT)
-        finally:
-            gevent.signal(signal.SIGTERM, sigterm_handler)
-
-        for service, result in zip(self._buildable_services, greenlets):
+        def get_status(service, result):
             try:
-                result.get()
+                exit_status = result.get(block=False)
+                if exit_status == 0:
+                    return True
+                if len(self._buildable_services) > 1:
+                    logging.info("Stopping the other services…")
+                    gevent.joinall([
+                        gevent.spawn(service.stop) for service in services
+                    ])
+            except gevent.Timeout:
+                return None
             except UnkownImageError:
                 logging.error(
                     "Couldn't find the image to run for service {0} ({1}), did "
                     "you build it?".format(service.name, service.type)
                 )
-                return False
             except Exception:
                 logging.exception("Couldn't run service {0} ({1})".format(
                     service.name, service.type
                 ))
-                return False
-        return True
+            return False
+
+        stop_ev = gevent.event.Event()
+        services = [service for service in self._buildable_services]
+        greenlets = [gevent.spawn(service.run, stop_ev) for service in services]
+        sigterm_handler = gevent.signal(signal.SIGTERM, signal_handler)
+        ret = True
+        try:
+            while greenlets:
+                remaining_greenlets = []
+                try:
+                    stop_ev.wait()
+                    stop_ev.clear()
+                    for service, result in zip(self._buildable_services, greenlets):
+                        status = get_status(service, result)
+                        if status is None:
+                            remaining_greenlets.append(result)
+                        elif not status:
+                            ret = status
+                except KeyboardInterrupt:
+                    signal_handler(signal.SIGINT)
+                greenlets = remaining_greenlets
+        finally:
+            gevent.signal(signal.SIGTERM, sigterm_handler)
+        return ret
 
 class Service(object):
     """Represents a single service within a dotCloud application."""
@@ -376,35 +394,41 @@ class Service(object):
         self._container = None
         return True
 
-    def run(self):
-        image = Image(self._latest_result_revspec)
-        self._container = image.instantiate()
-        ports = self.ports.values()
-        ports.append(2222)
-        if not "worker" in self.type:
-            ports.append(8080)
-        supervisor_cmd = "exec supervisord -nc {0}".format(os.path.join(
-            self._extract_path, "supervisor.conf"
-        ))
-        logging.info("Starting Supervisor in {0}".format(image))
-        with self._container.run_stream_logs(
-            ["/bin/sh", "-lc", supervisor_cmd],
-            env={"HOME": "/home/dotcloud"},
-            as_user="dotcloud",
-            ports=ports
-        ) as supervisor:
-            for port, mapped_port in supervisor.ports.iteritems():
-                logging.info(
-                    "Port {0} on service {1} mapped to {2} on the "
-                    "Docker host".format(port, self.name, mapped_port)
-                )
-        if self._container.exit_status != 0:
-            logging.warning("Service {0} exited with status {1}".format(
-                self.name, self._container.exit_status
+    def run(self, stop_ev):
+        try:
+            image = Image(self._latest_result_revspec)
+            self._container = image.instantiate()
+            ports = self.ports.values()
+            ports.append(2222)
+            if not "worker" in self.type:
+                ports.append(8080)
+            supervisor_cmd = "exec supervisord -nc {0}".format(os.path.join(
+                self._extract_path, "supervisor.conf"
             ))
-        else:
-            logging.info("Service {0} exited".format(self.name))
-        self._container = None
+            logging.info("Starting Supervisor in {0}".format(image))
+            with self._container.run_stream_logs(
+                ["/bin/sh", "-lc", supervisor_cmd],
+                env={"HOME": "/home/dotcloud"},
+                as_user="dotcloud",
+                ports=ports
+            ) as supervisor:
+                for port, mapped_port in supervisor.ports.iteritems():
+                    logging.info(
+                        "Port {0} on service {1} mapped to {2} on the "
+                        "Docker host".format(port, self.name, mapped_port)
+                    )
+            if self._container.exit_status != 0:
+                logging.warning(
+                    "Service {0} didn't exit normally (returned "
+                    "{1})".format(self.name, self._container.exit_status)
+                )
+            else:
+                logging.info("Service {0} exited".format(self.name))
+            exit_status = self._container.exit_status
+            self._container = None
+            return exit_status
+        finally: # Avoid any stupid deadlock
+            stop_ev.set()
 
     def stop(self):
         """If the service is currently running or building, interrupt it."""
