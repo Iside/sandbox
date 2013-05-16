@@ -2,6 +2,6 @@ db:
     type: custom
     buildscript: ./buildscript
     systempackages:
-        - postgresql
+        - cmake
     environment:
         API_ENDPOINT: http://api.example.com/v1/

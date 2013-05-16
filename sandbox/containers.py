@@ -92,8 +92,13 @@ class Container(object):
         return _inspect_container()
 
     def install_system_packages(self, packages):
-        # XXX: pay attention to the tricks done in snapshots/worker.py
-        pass
+        cmd = "DEBIAN_FRONTEND=noninteractive; " \
+            "apt-get update; apt-get -y install {0}; " \
+            "apt-get clean; rm -rf /var/lib/apt/lists/*".format(
+                " ".join(packages)
+            )
+        with self.run(["/bin/sh", "-c", cmd]):
+            pass
 
     # XXX: Maybe this should be named to something else to better reflect the
     # fact that it's really an authoring tool, and reduce the confusion with

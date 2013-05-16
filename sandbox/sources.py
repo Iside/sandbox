@@ -350,12 +350,20 @@ class Service(object):
 
     def build(self, app_build_dir, app_files, base_image):
         logging.info("Building service {0}…".format(self.name))
+        # Install system packages
+        logging.debug("Installing system packages {0} for service {1}".format(
+            ", ".join(self.systempackages), self.name
+        ))
+        self._container = base_image.instantiate(
+            commit_as=self._build_revspec()
+        )
+        self._container.install_system_packages(self.systempackages)
         svc_tarball = self._generate_service_tarball(app_build_dir, app_files)
         logging.debug("Tarball for service {0} generated at {1}".format(
             self.name, svc_tarball.dest
         ))
         # Upload all the code:
-        self._container = base_image.instantiate(
+        self._container = self._container.result.instantiate(
             commit_as=self._build_revspec()
         )
         self._unpack_service_tarball(svc_tarball.dest, self._container)

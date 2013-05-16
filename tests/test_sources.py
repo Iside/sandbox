@@ -41,7 +41,7 @@ class TestApplication(unittest.TestCase):
 
     def test_load_custom_packages_application(self):
         application = Application(os.path.join(self.path, "custom_app"), {})
-        self.assertListEqual(application.services[0].systempackages, ["postgresql"])
+        self.assertListEqual(application.services[0].systempackages, ["cmake"])
 
     def test_simple_application_build(self):
         application = Application(os.path.join(self.path, "simple_gunicorn_gevent_app"), {})
@@ -78,6 +78,13 @@ class TestApplication(unittest.TestCase):
                 pass
             self.assertIn("dotcloud.yml", container.logs)
             self.assertIn("buildscript-stamp", container.logs)
+        container = result.instantiate(commit_as=ImageRevSpec.parse(
+            ContainerTestCase.random_image_name()
+        ))
+        with _destroy_result(container):
+            with container.run(["ls", "-R", "/usr/bin"]):
+                pass
+            self.assertIn("cmake", container.logs)
 
     def test_mysql_application_build(self):
         application = Application(os.path.join(self.path, "mysql_app"), {})
