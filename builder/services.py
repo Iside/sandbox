@@ -187,9 +187,41 @@ class PythonWorker(ServiceBase):
 
 class Python(PythonWorker):
 
+    UWSGI_VERSION = ">=1.9.10,<1.10"
+
+    def __init__(self, *args, **kwargs):
+        PythonWorker.__init__(self, *args, **kwargs)
+        self._nginx_conf = os.path.join(self._supervisor_dir, "nginx.conf")
+
     def _configure(self):
         PythonWorker._configure(self)
-        # TODO: setup the uwsgi configuration for supervisor
+        logging.debug("Adding Nginx configuration")
+        nginx_conf = self._templates.render(
+            "python", "nginx.conf",
+            supervisor_dir=self._supervisor_dir,
+            svc_dir=self._svc_dir
+        )
+        with open(self._nginx_conf, "w") as fp:
+            fp.write(nginx_conf)
+        logging.debug("Adding Nginx and uWSGI to Supervisor")
+        uwsgi_inc = self._templates.render(
+            "python", "uwsgi.inc",
+            supervisor_dir=self._supervisor_dir,
+            virtualenv_dir=self._virtualenv_dir,
+            exec_dir=self._svc_dir,
+            config=self._definition['config']
+        )
+        nginx_inc = self._templates.render(
+            "python", "nginx.inc",
+            supervisor_dir=self._supervisor_dir
+        )
+        with open(self._supervisor_include, "a") as fp:
+            fp.write(uwsgi_inc)
+            fp.write(nginx_inc)
+        logging.debug("Installing uWSGI {0}".format(self.UWSGI_VERSION))
+        subprocess.check_call([
+            self._pip, "install", "uWSGI {0}".format(self.UWSGI_VERSION)
+        ])
 
 class Custom(ServiceBase):
 
@@ -250,8 +282,9 @@ def get_service_class(svc_type):
     """Return the right “builder” class for the given service type or None."""
 
     return {
-        "python-worker": PythonWorker,
-        "custom": Custom
+        "custom": Custom,
+        "python": Python,
+        "python-worker": PythonWorker
     }.get(svc_type)
 
 def get_service(build_dir, svc_dir, svc_definition):

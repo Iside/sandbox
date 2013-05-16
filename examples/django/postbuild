@@ -1,0 +1,10 @@
+#!/bin/sh
+
+data_dir=$HOME/data
+volatile_dir=$HOME/volatile
+
+[ ! -d $data_dir/media ] || mkdir -p $data_dir/media
+[ ! -d $volatile_dir/static ] || mkdir -p $volatile_dir/static
+
+python manage.py syncdb --noinput
+python manage.py collectstatic --noinput

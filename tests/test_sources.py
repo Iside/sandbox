@@ -90,6 +90,13 @@ class TestApplication(unittest.TestCase):
         images = application.build(base_image=Image(ImageRevSpec.parse("lopter/sandbox-base:latest")))
         self.assertEqual(images, None)
 
+    def test_python_application_build(self):
+        application = Application(os.path.join(self.path, "simple_python_app"), {})
+        images = application.build(base_image=Image(ImageRevSpec.parse("lopter/sandbox-base:latest")))
+        self.assertIsInstance(images, dict)
+        result = images.get("www")
+        self.assertIsNotNone(result)
+
 class TestService(ContainerTestCase):
 
     def setUp(self):

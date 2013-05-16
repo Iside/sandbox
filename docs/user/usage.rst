@@ -13,8 +13,8 @@ Ringtail).
 
 .. note::
 
-   This image only supports the python-worker service for now, but new images
-   will be added soon.
+   This image only supports the python and python-worker services with Python
+   2.7 for now, but new images are easy to add.
 
 .. note::
 
