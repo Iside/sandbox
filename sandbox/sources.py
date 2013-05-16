@@ -24,6 +24,7 @@ import shutil
 import signal
 import socket
 import tempfile
+import termios
 import time
 import yaml
 
@@ -76,6 +77,13 @@ class Application(object):
         yield build_dir
         shutil.rmtree(build_dir, ignore_errors=True)
 
+    @staticmethod
+    @contextlib.contextmanager
+    def _reset_terminal():
+        old = termios.tcgetattr(1)
+        yield
+        termios.tcsetattr(1, termios.TCSAFLUSH, old)
+
     def _generate_application_tarball(self, app_build_dir):
         logging.debug("Archiving {0} in {1}".format(self.name, app_build_dir))
         app_tarball = Tarball.create_from_files(
@@ -122,7 +130,7 @@ class Application(object):
             )
             return
 
-        with self._build_dir() as build_dir:
+        with self._build_dir() as build_dir, self._reset_terminal():
             app_files = self._generate_application_tarball(build_dir)
             logging.debug("Starting parallel build for {0} services".format(
                 len(self._buildable_services)
