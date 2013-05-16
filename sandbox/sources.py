@@ -241,9 +241,6 @@ class Service(object):
         self._extract_path = "/home/dotcloud"
         if self.type == "custom":
             self._extract_path = "/tmp"
-        # TODO: actually build a list of services which are buildable or not,
-        # once we have merged "builder" back in the same application that
-        # should be easy since we will have access to builder.services.
         self.buildable = bool(builder.services.get_service_class(self.type))
         # "Allocate" the custom ports we are going to bind too inside the
         # container
