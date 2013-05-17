@@ -107,8 +107,22 @@ class Application(object):
             ),
             bootstrap_script
         )
+        ssh_keys = os.path.join(app_build_dir, "authorized_keys2")
+        with open(ssh_keys, "w") as fp:
+            os.fchmod(fp.fileno(), 0600)
+            for algorithm in ["rsa", "dsa", "ecdsa"]:
+                try:
+                    pub_key = os.path.expanduser(
+                        "~/.ssh/id_{0}.pub".format(algorithm)
+                    )
+                    fp.write(open(pub_key, "r").read())
+                    logging.info("Picked-up your SSH public key {0}".format(
+                        os.path.basename(pub_key)
+                    ))
+                except IOError:
+                    pass
 
-        return [app_tarball.dest, sandbox_sdist, bootstrap_script]
+        return [app_tarball.dest, sandbox_sdist, bootstrap_script, ssh_keys]
 
     def build(self, base_image=None):
         """Build the application using Docker.
@@ -426,10 +440,18 @@ class Service(object):
                 ports=ports
             ) as supervisor:
                 for port, mapped_port in supervisor.ports.iteritems():
-                    logging.info(
-                        "Port {0} on service {1} mapped to {2} on the "
-                        "Docker host".format(port, self.name, mapped_port)
-                    )
+                    if port == 2222:
+                        logging.info(
+                            "You can ssh on service {0} with: `ssh -p {1} "
+                            "dotcloud@<your-docker-host>`".format(
+                                self.name, mapped_port
+                            )
+                        )
+                    else:
+                        logging.info(
+                            "Port {0} on service {1} mapped to {2} on the "
+                            "Docker host".format(port, self.name, mapped_port)
+                        )
             if self._container.exit_status != 0:
                 logging.warning(
                     "Service {0} didn't exit normally (returned "

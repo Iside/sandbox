@@ -43,6 +43,7 @@ stderr_logfile={supervisor_dir}/{name}_error.log
         self._supervisor_dir = os.path.join(self._build_dir, "supervisor")
         self._supervisor_include = os.path.join(self._build_dir, "supervisor.conf")
         self._profile = os.path.join(self._build_dir, "dotcloud_profile")
+        self._sshd_config = os.path.join(self._supervisor_dir, "sshd_config")
         self._templates = TemplatesRepository()
 
     def _configure(self): pass
@@ -71,29 +72,37 @@ stderr_logfile={supervisor_dir}/{name}_error.log
         with ignore_eexist():
             os.symlink(approot_dir, self._svc_dir)
 
+    def _configure_sshd(self):
+        with open(self._sshd_config, "w") as fp:
+            fp.write(self._templates.render(
+                "common", "sshd_config", supervisor_dir=self._supervisor_dir
+            ))
+        cmds = []
+        for algorithm in ["rsa", "dsa", "ecdsa"]:
+            keypath = os.path.join(
+                self._supervisor_dir, "ssh_host_{0}_key".format(algorithm)
+            )
+            if not os.path.exists(keypath):
+                cmds.append([
+                    "ssh-keygen", "-t", algorithm, "-N", "", "-f", keypath
+                ])
+        logging.info("Generating SSH host keys")
+        subprocesses = [subprocess.Popen(cmd) for cmd in cmds]
+        for process, cmd in zip(subprocesses, cmds):
+            returncode = process.wait()
+            if returncode:
+                raise subprocess.CalledProcessError(returncode, cmd)
+
     def _generate_supervisor_configuration(self):
         # The configuration itself will be in ~dotcloud but put all the other
         # supervisor related files in a subdir:
         with ignore_eexist():
             os.mkdir(self._supervisor_dir)
+        supervisord_conf = self._templates.render(
+            "common", "supervisor.conf", supervisor_dir=self._supervisor_dir
+        )
         with open(self._supervisor_include, 'w') as fp:
-            fp.write("""[supervisord]
-logfile={supervisor_dir}/supervisord.log
-pidfile={supervisor_dir}/supervisord.pid
-
-[unix_http_server]
-file={supervisor_dir}/supervisor.sock
-
-[rpcinterface:supervisor]
-supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
-
-[supervisorctl]
-serverurl=unix://{supervisor_dir}/supervisor.sock
-
-[include]
-files=/home/dotcloud/current/supervisord.conf
-
-""".format(supervisor_dir=self._supervisor_dir))
+            fp.write(supervisord_conf)
 
     def _generate_processes(self):
         with open(self._supervisor_include, "a") as fp:
@@ -118,6 +127,7 @@ files=/home/dotcloud/current/supervisord.conf
             self._hook_prebuild()
             self._generate_supervisor_configuration()
             self._generate_processes()
+            self._configure_sshd()
             self._configure()
             self._install_requirements()
             self._hook_postbuild()

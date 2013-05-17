@@ -55,7 +55,7 @@ service::
         language-pack-en lsb-release wget curl supervisor python2.7-dev \
         libssl-dev build-essential libevent-dev libpq-dev libsqlite3-dev \
         libyaml-dev ruby-dev uuid-dev libmysqlclient-dev libpcre3-dev \
-        python-virtualenv zlib1g-dev less
+        python-virtualenv zlib1g-dev less openssh-server
 
 Clean up APT related files::
 

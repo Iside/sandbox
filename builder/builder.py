@@ -8,9 +8,11 @@ This module implements :class:`Builder` which is the counter part of
 :class:`sandbox.Application <udotcloud.sandbox.sources.Application>`.
 """
 
+import errno
 import json
 import logging
 import os
+import shutil
 import subprocess
 
 from .services import get_service
@@ -63,6 +65,20 @@ class Builder(object):
             os.unlink(self._app_tarball)
         if untar_app or untar_svc:
             return False
+
+        logging.debug("Setting up SSH keys")
+        ssh_dir = os.path.join(self._build_dir, ".ssh")
+        try:
+            os.mkdir(ssh_dir, 0700)
+        except OSError as ex:
+            if ex.errno != errno.EEXIST:
+                raise
+        try:
+            os.unlink(os.path.join(ssh_dir, "authorized_keys2"))
+        except OSError as ex:
+            if ex.errno != errno.ENOENT:
+                raise
+        shutil.move(os.path.join(self._build_dir, "authorized_keys2"), ssh_dir)
 
         definition = os.path.join(self._build_dir, "definition.json")
         logging.debug("Loading service definition from {0}".format(definition))

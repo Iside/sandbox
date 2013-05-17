@@ -65,6 +65,8 @@ class TestBuilderUnpack(TestBuilderCase):
         self.assertFalse(os.path.exists(os.path.join(self.installdir, "service.tar")))
         self.assertFalse(os.path.exists(os.path.join(self.installdir, "definition.json")))
 
+        self.assertTrue(os.path.exists(os.path.join(self.installdir, ".ssh/authorized_keys2")))
+
 class TestBuilderPythonWorker(TestBuilderCase):
 
     sources_path = "simple_gunicorn_gevent_app"
