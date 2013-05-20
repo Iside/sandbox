@@ -107,12 +107,12 @@ generated in the environment).
     )
 
     args = parser.parse_args()
+    configure_logging("==>", args.log_lvl)
+
     if getattr(args, "env", None):
         env = parse_environment_variables(args.env)
     else:
         env = {}
-
-    configure_logging("==>", args.log_lvl)
 
     try:
         logging.debug("Loading {0}".format(args.application))
