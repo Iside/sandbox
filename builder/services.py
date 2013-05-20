@@ -247,6 +247,7 @@ stderr_logfile={supervisor_dir}/{name}_error.log
         ServiceBase.__init__(self, *args, **kwargs)
         self._svc_dir = self._build_dir
         self._supervisor_dir = "/home/dotcloud/supervisor"
+        self._sshd_config = os.path.join(self._supervisor_dir, "sshd_config")
         self._profile = os.path.join("/home/dotcloud/dotcloud_profile")
         self._buildscript = None
         if "buildscript" in self._definition:
