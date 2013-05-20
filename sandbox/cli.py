@@ -15,7 +15,6 @@ from ..utils.debug import configure_logging, log_success
 
 def parse_environment_variables(env_list):
     env_dict = {}
-    shell_var_re = re.compile('^[a-zA-Z][a-zA-Z0-9_]*$')
     for var in env_list:
         try:
             key, value = var.split("=")
@@ -25,10 +24,8 @@ def parse_environment_variables(env_list):
                 "form KEY=VALUE (got {0})".format(var)
             )
             sys.exit(1)
-        if not shell_var_re.match(key) or not shell_var_re.match(value):
-            logging.error(
-                "Invalid character in the environment variable: {0}".format(var)
-            )
+        if not re.match(r"^[a-zA-Z]\w+", key):
+            logging.error("Invalid environment variable name: {0}".format(key))
             sys.exit(1)
         env_dict[key] = value
     return env_dict
