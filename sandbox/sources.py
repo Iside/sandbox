@@ -164,7 +164,7 @@ class Application(object):
                     ))
                     return None
 
-        return {s.name: s.result_image for s in self.services}
+        return {s.name: s.result_image for s in self.services if s.buildable}
 
     def run(self):
         """Run the application in Docker using the result of the latest build.
