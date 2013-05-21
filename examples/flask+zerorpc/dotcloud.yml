@@ -1,0 +1,18 @@
+www:
+    type: python
+    config:
+        python_version: v2.7
+    systempackages:
+        - libevent-dev
+
+api:
+    type: python-worker
+    ports:
+        zeroservice: tcp
+    config:
+        python_version: v2.7
+    processes:
+        api: python api.py
+
+db:
+    type: redis
