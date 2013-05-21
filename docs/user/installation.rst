@@ -29,7 +29,7 @@ on the VM if you redirect your local tcp/4242 port to it, you can do so with::
 Set-up Sandbox
 --------------
 
-Sandbox also depends:
+Sandbox also depends on:
 
 - Python 2.7 (other versions *won't* work);
 - A C compiler and the Python development headers;
