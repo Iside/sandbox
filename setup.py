@@ -90,7 +90,7 @@ setup(
     scripts=["builder/dotcloud-builder"],
     install_requires=requirements,
     dependency_links=[
-        "https://github.com/surfly/gevent/tarball/master#egg=gevent-1.0rc2"
+        "https://github.com/surfly/gevent/tarball/b3a9ff1faf44015c672892aee07d08c7f7b85dcb#egg=gevent-1.0rc2"
     ],
     test_suite="tests.run_all",
     classifiers=[
