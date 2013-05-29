@@ -10,6 +10,13 @@ in your own virtual machine or follow the `vagrant guide`_ (recommended).
 .. _manually: http://docs.docker.io/en/latest/installation/ubuntulinux/
 .. _vagrant guide: http://docs.docker.io/en/latest/installation/vagrant/
 
+.. note::
+
+   Sandbox is compatible with Docker ≥ 0.2.0 and ≤ 0.3.2 (compatibility with
+   Docker ≥ 0.3.3 will be added soon, `#23`_)
+
+.. _#23: https://github.com/dotcloud/sandbox/issues/23
+
 If you installed Docker manually, start it::
 
     docker -d

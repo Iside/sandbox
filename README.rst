@@ -30,8 +30,7 @@ differences exist:
 Requirements
 ------------
 
-- Docker (This is developed against master, but pretty much any release done
-  after April 2013 should work);
+- Docker ≥ 0.2.0, ≤ 0.3.2;
 - Python 2.7 (older versions *won't* work);
 - A C compiler and the Python development headers.
 
