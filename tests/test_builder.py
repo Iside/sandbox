@@ -135,6 +135,7 @@ class TestBuilderCustom(TestBuilderCase):
         # Reset them to our test directory (otherwise the test suite will try
         # to write in ~dotcloud on your computer).
         custom_svc_builder._supervisor_dir = os.path.join(custom_svc_builder._build_dir, "supervisor")
+        custom_svc_builder._sshd_config = os.path.join(custom_svc_builder._supervisor_dir, "sshd_config")
         custom_svc_builder._profile = os.path.join(custom_svc_builder._build_dir, "dotcloud_profile")
 
         custom_svc_builder.build()
