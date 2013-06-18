@@ -73,7 +73,7 @@ class TestContainers(ContainerTestCase):
         self.assertEqual(tagged.tag, "foobar")
 
     def test_run_stop(self):
-        with self.container.run(["cat", "/dev/zero"]):
+        with self.container.run(["dd", "if=/dev/zero", "of=/dev/null"]):
             self.container.stop(wait=1)
         self.assertEqual(self.container.exit_status, 137) # SIGKILLED
 

@@ -82,9 +82,13 @@ class Container(object):
         def _inspect_container():
             logging.debug("Inspecting container {0}".format(self._id))
             with _CatchDockerError():
-                return json.loads(gevent.subprocess.check_output([
+                infos = json.loads(gevent.subprocess.check_output([
                     "docker", "inspect", self._id
                 ]).strip())
+                # In docker 0.4.1 docker inspect will return a list:
+                if isinstance(infos, list):
+                    return infos[0]
+                return infos
         if async:
             async_result = gevent.event.AsyncResult()
             gevent.spawn(_inspect_container).link(async_result)

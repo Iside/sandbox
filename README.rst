@@ -30,7 +30,7 @@ differences exist:
 Requirements
 ------------
 
-- Docker ≥ 0.2.0, ≤ 0.3.2;
+- Docker ≥ 0.2.0, ≤ 0.3.2 or Docker ≥ 0.4.1;
 - Python 2.7 (older versions *won't* work);
 - A C compiler and the Python development headers.
 

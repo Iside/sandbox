@@ -12,10 +12,8 @@ in your own virtual machine or follow the `vagrant guide`_ (recommended).
 
 .. note::
 
-   Sandbox is compatible with Docker ≥ 0.2.0 and ≤ 0.3.2 (compatibility with
-   Docker ≥ 0.3.3 will be added soon, `#23`_)
-
-.. _#23: https://github.com/dotcloud/sandbox/issues/23
+   Sandbox is compatible with Docker ≥ 0.2.0, ≤ 0.3.2 or Docker ≥ 0.4.1 (a bug
+   introduced in 0.3.3 and fixed in 0.4.1 broke the compatibility with Sandbox).
 
 If you installed Docker manually, start it::
 
